@@ -65,23 +65,27 @@
     (when end-point (goto-char end-point))))
 
 ;; TODO - switch these to use outline-minor-mode if possible instead of org-mode
-(defun wgh/org-down-element ()
+(defun cpo-org-down-element ()
   (interactive)
+  (require 'org)
   ;; To not get an error part way through a complex movement where an intermediate movement is allowed to fail
   (ignore-errors (org-down-element)))
 ;; TODO - use outline-up-heading
-(defun wgh/org-up-element ()
+(defun cpo-org-up-element ()
   (interactive)
+  (require 'org)
   ;; To not get an error part way through a complex movement where an intermediate movement is allowed to fail
   (ignore-errors (org-up-element)))
 
-(defun wgh/org-forward-to-last-sibling ()
+(defun cpo-org-forward-to-last-sibling ()
+  (require 'org)
   (while (cpo-tree-walk--motion-moved (lambda () (org-forward-heading-same-level 1)))))
-(defun wgh/org-down-to-last-child ()
+(defun cpo-org-down-to-last-child ()
   ;; TODO - this and others should probably take a number argument
   (interactive)
-  (and (cpo-tree-walk--motion-moved #'wgh/org-down-element)
-       (wgh/org-forward-to-last-sibling)))
+  (require 'org)
+  (and (cpo-tree-walk--motion-moved #'cpo-org-down-element)
+       (cpo-org-forward-to-last-sibling)))
 
 (defun cpo-outline--outline-at-anchor-point-p ()
   (save-mark-and-excursion
