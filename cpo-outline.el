@@ -3,39 +3,19 @@
 (require 'outline)
 
 (defun cpo-outline-forward-slurp-heading ()
-  ;; TODO - this is broken, outline-demote isn't working right, at least in org-mode
   (interactive)
-  (let ((start-line (line-number-at-pos))
-        (line-at-next-heading (save-excursion
-                                (outline-forward-same-level 1)
-                                (line-number-at-pos))))
-    (if (equal start-line line-at-next-heading)
-        nil
-      (save-excursion
-        (outline-forward-same-level 1)
-        (outline-demote 'subtree)))))
+  (require 'org)
+  (save-mark-and-excursion
+    (when (cpo-tree-walk--motion-moved
+           (lambda () (ignore-errors (outline-forward-same-level 1))))
+      (org-demote-subtree))))
 
 (defun cpo-outline-forward-barf-heading ()
   (interactive)
-  (let ((next-heading-loc (save-excursion
-                            (outline-forward-same-level 1)
-                            (point)))
-        (start-line (line-number-at-pos))
-        (line-at-next-heading (save-excursion
-                                (outline-forward-same-level 1)
-                                (line-number-at-pos))))
-    (save-excursion
-      (outline-next-heading)
-      (if (equal start-line line-at-next-heading)
-          nil
-        ;; go to last child heading
-        (letrec ((loop (lambda (pt)
-                         (ignore-errors (outline-forward-same-level 1))
-                         (if (equal pt (point))
-                             nil
-                           (funcall loop (point))))))
-          (funcall loop (point))
-          (outline-promote 'subtree))))))
+  (require 'org)
+  (save-mark-and-excursion
+    (when (cpo-tree-walk--motion-moved 'cpo-outline-down-to-last-child)
+      (org-promote-subtree))))
 
 (defun cpo-outline-add-heading-above ()
   (interactive)
