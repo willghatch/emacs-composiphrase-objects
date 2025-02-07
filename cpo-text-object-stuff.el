@@ -273,6 +273,15 @@ If no region is active, it will use (point . point)."
 (cpo-text-object-stuff--def-transpose-thing line)
 (cpo-text-object-stuff--def-expand-region-to-thing line)
 
+;; TODO - these are actually trees, and should actually keep expanding.  I never use these built-in functions because I always use smartparens.  But I think these are more built-in and work in more modes.  Maybe I should actually use them.
+(cpo-text-object-stuff--def-move-thing sexp)
+(cpo-text-object-stuff--def-transpose-thing sexp)
+(cpo-text-object-stuff--def-expand-region-to-thing sexp)
+;; TODO - also the list motions are broken...
+(cpo-text-object-stuff--def-move-thing list)
+(cpo-text-object-stuff--def-transpose-thing list)
+(cpo-text-object-stuff--def-expand-region-to-thing list)
+
 
 ;;;;;
 
