@@ -29,6 +29,33 @@
   (outline-move-subtree-down 1)
   (end-of-line))
 
+(defun cpo-outline-add-child-heading (&optional insert-index)
+  "Insert a child heading.  If INSERT-INDEX is null, insert last child, otherwise insert at index, where 0 means insert before the current first child."
+  (interactive "P")
+  (let* ((count (cond ((numberp insert-index) insert-index)
+                      ((consp insert-index) (car insert-index))
+                      (t 'last)))
+         (point-at-child (cpo-tree-walk--motion-moved
+                          (if (eq count 'last)
+                              'cpo-outline-down-to-last-child
+                            'cpo-outline-down-to-first-child))))
+    (if point-at-child
+        (if (eq count 'last)
+            (cpo-outline-add-heading-below)
+          (progn
+            (outline-forward-same-level count)
+            (cpo-outline-add-heading-above)))
+      (progn
+        (cpo-outline-add-heading-below)
+        (org-demote-subtree)))))
+
+(defun cpo-outline-add-ancestor-next-sibling-heading (&optional ancestor-index)
+  "Insert a next sibling heading for parent, or ancestor at ANCESTOR-INDEX.
+This is useful when finishing a heading and wanting to start writing something at the parent (or ancestor) level."
+  (interactive "p")
+  (outline-up-heading (or ancestor-index 1))
+  (cpo-outline-add-heading-below))
+
 
 (defun cpo-outline-down-to-first-child ()
   (interactive)
