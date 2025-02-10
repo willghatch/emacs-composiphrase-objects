@@ -101,6 +101,93 @@ This is useful when finishing a heading and wanting to start writing something a
       (outline-next-heading)
       (equal (point) start-point))))
 
+(defun cpo-outline--forward-half-or-full-sibling-single (&optional half-sibling-only)
+  (let ((start-point (point))
+        (start-level (org-current-level))
+        (parent-level (save-mark-and-excursion
+                        (and (ignore-errors (outline-up-heading 1))
+                             (org-current-level))))
+        (cur-level nil)
+        (end-point nil))
+    (and
+     parent-level
+     (save-mark-and-excursion
+       (outline-back-to-heading)
+       (while (and (cpo-tree-walk--motion-moved
+                    (lambda () (ignore-errors (outline-next-heading))))
+                   (setq cur-level (org-current-level))
+                   (setq end-point (point))
+                   (and cur-level (< start-level cur-level)))
+         nil)
+       t)
+     (cond
+      ((equal cur-level start-level)
+       (when (not half-sibling-only)
+         (goto-char end-point)))
+      ((< parent-level cur-level start-level)
+       (goto-char end-point))
+      (t nil)))))
+
+(defun cpo-outline--backward-half-or-full-sibling-single (&optional half-sibling-only)
+  (let ((start-point (point))
+        (start-level (org-current-level))
+        (parent-level (save-mark-and-excursion
+                        (ignore-errors (outline-up-heading 1))
+                        (org-current-level)))
+        (keep-going t)
+        (min-level nil)
+        (min-level-point nil))
+    (and
+     parent-level
+     (save-mark-and-excursion
+       (outline-back-to-heading)
+       (while (and keep-going
+                   (cpo-tree-walk--motion-moved
+                    (lambda () (ignore-errors (outline-previous-heading)))))
+         (let ((cur-level (org-current-level)))
+           (message "cur-level: %s, cur-point: %s, min-level: %s" cur-level (point) min-level)
+           (when (not min-level)
+             (setq min-level cur-level)
+             (setq min-level-point (point)))
+           (when (and (< parent-level cur-level)
+                      (<= cur-level min-level))
+             (setq min-level cur-level)
+             (setq min-level-point (point)))
+           (when (<= cur-level start-level)
+             (setq keep-going nil))))
+       t)
+     (cond
+      ((and (equal min-level start-level) (not half-sibling-only))
+       (goto-char min-level-point))
+      ((<= min-level start-level)
+       nil)
+      ((not min-level)
+       nil)
+      (t (goto-char min-level-point))))))
+
+(defun cpo-outline-forward-half-or-full-sibling (&optional count half-sibling-only)
+  "Move forward by half or full outline sibling.
+If HALF-SIBLING-ONLY, only moves to a half sibling, and will stall on full siblings.
+A half sibling arises when an outline heading has a first child that increases heading level by more than 1, then a later child that has a level that is between the first child and the parent level.
+There can be arbitrarily many half siblings, since the depth difference between a parent and first child can be arbitrarily wide, then future children can have gradually less depth.
+"
+  (interactive "p")
+  (let* ((count (or count 1))
+         (fwd (<= 0 count))
+         (count (abs count)))
+    (if fwd
+        (dotimes (i count) (cpo-outline--forward-half-or-full-sibling-single half-sibling-only))
+      (dotimes (i count) (cpo-outline--backward-half-or-full-sibling-single half-sibling-only)))))
+
+(defun cpo-outline-backward-half-or-full-sibling (&optional count half-sibling-only)
+  "Move backward by half or full outline sibling.
+If HALF-SIBLING-ONLY, only moves to a half sibling, and will stall on full siblings.
+A half sibling arises when an outline heading has a first child that increases heading level by more than 1, then a later child that has a level that is between the first child and the parent level.
+There can be arbitrarily many half siblings, since the depth difference between a parent and first child can be arbitrarily wide, then future children can have gradually less depth.
+"
+  (interactive "p")
+  (cpo-outline-forward-half-or-full-sibling (- (or count 1)) half-sibling-only))
+
 (cpo-tree-walk-define-operations
  :def-inorder-forward cpo-outline-inorder-traversal-forward
  :def-inorder-backward cpo-outline-inorder-traversal-backward
@@ -125,9 +212,8 @@ This is useful when finishing a heading and wanting to start writing something a
 
  :use-up-to-parent (lambda () (ignore-errors (outline-up-heading 1)))
  :use-down-to-first-child #'cpo-outline-down-to-first-child
- ;; TODO - handle half siblings like I did for indent-tree -- instead of using outline-forward-same-level here, I need to write a forward-sibling-or-half-sibling function.
- :use-next-sibling (lambda () (ignore-errors (outline-forward-same-level 1)))
- :use-previous-sibling (lambda () (ignore-errors (outline-backward-same-level 1)))
+ :use-next-sibling 'cpo-outline-forward-half-or-full-sibling
+ :use-previous-sibling 'cpo-outline-backward-half-or-full-sibling
  :use-left-finalizer-for-tree-with-no-end-delimiter (lambda ()
                                                       (if (cpo-outline--outline-at-anchor-point-p)
                                                           (line-beginning-position)
@@ -146,6 +232,7 @@ This is useful when finishing a heading and wanting to start writing something a
   (repeatable-motion-define 'cpo-outline-down-to-last-child 'outline-up-heading)
   (repeatable-motion-define 'cpo-outline-down-to-last-descendant nil)
   (repeatable-motion-define-pair 'cpo-outline-inorder-traversal-forward 'cpo-outline-inorder-traversal-backward)
+  (repeatable-motion-define-pair 'cpo-outline-forward-half-or-full-sibling 'cpo-outline-backward-half-or-full-sibling)
   )
 
 
