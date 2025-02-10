@@ -105,7 +105,7 @@
         (start-region-active (region-active-p)))
     (funcall motion)
     (or (not (= (point) start-pos))
-        (not (= (mark) start-mark))
+        (not (equal (mark) start-mark))
         (not (equal start-region-active (region-active-p))))))
 
 (defun cpo-tree-walk--last-leaf-forward-in-order (up next)
@@ -322,6 +322,12 @@ Returns the region of the children, not the full tree."
            (funcall down))
       (funcall final))))
 (defun cpo-tree-walk--inner-bounds-no-end-tree-for-point_right (up down-to-last-descendant final)
+  (lambda (start-point)
+    (save-excursion
+      (goto-char start-point)
+      (funcall down-to-last-descendant)
+      (funcall final))))
+(defun cpo-tree-walk--inner-bounds-no-end-tree-for-point_right_inner-bounds-for-parent-of-start-point (up down-to-last-descendant final)
   (lambda (start-point)
     (save-excursion
       (goto-char start-point)
