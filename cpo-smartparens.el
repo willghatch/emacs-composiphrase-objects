@@ -710,6 +710,10 @@ BOUNDS is the bounds of the current sexp."
   (repeatable-motion-define 'cpo-smartparens-up-parent-end 'cpo-smartparens-down-first-child-beginning)
   (repeatable-motion-define 'cpo-smartparens-down-last-child-end 'cpo-smartparens-up-parent-beginning)
   ;;(repeatable-motion-define-pair 'cpo-smartparens-forward-sexp-in-supersexp 'cpo-smartparens-backward-sexp-in-supersexp)
+  (repeatable-motion-define 'cpo-smartparens-expand-region nil)
+  (repeatable-motion-define 'cpo-smartparens-expand-region/children-region nil)
+  (repeatable-motion-define 'cpo-smartparens-expand-region-to-any-delimiter nil)
+  ;; TODO - support repeatable motion for specific delimiter (for full and child region)
   )
 
 (provide 'cpo-smartparens)

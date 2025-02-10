@@ -195,6 +195,8 @@ But this is a heuristic thing, so we'll see if it works well."
   (repeatable-motion-define-pair 'cpo-treesitter-qd-forward-sibling-anchor-point 'cpo-treesitter-qd-backward-sibling-anchor-point)
   (repeatable-motion-define-pair 'cpo-treesitter-qd-up-to-parent-anchor-point 'cpo-treesitter-qd-down-to-first-child-anchor-point)
   (repeatable-motion-define 'cpo-treesitter-qd-down-to-last-child-anchor-point 'cpo-treesitter-qd-up-to-parent-anchor-point)
+  (repeatable-motion-define 'cpo-treesitter-qd-expand-region nil)
+  (repeatable-motion-define 'cpo-treesitter-qd-expand-region/children-region nil)
   )
 
 (provide 'cpo-treesitter-qd)

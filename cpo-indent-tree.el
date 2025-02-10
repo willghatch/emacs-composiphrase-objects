@@ -397,6 +397,8 @@ It always moves to the FIRST sibling in the full sibling region, regardless of m
   (repeatable-motion-define-pair 'cpo-indent-tree-inorder-traversal-forward
                                  'cpo-indent-tree-inorder-traversal-backward)
   (repeatable-motion-define 'cpo-indent-tree-down-to-last-descendant nil)
+  (repeatable-motion-define 'cpo-indent-tree-expand-region nil)
+  (repeatable-motion-define 'cpo-indent-tree-expand-region/children-region nil)
   )
 
 (provide 'cpo-indent-tree)

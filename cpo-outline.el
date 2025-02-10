@@ -233,6 +233,8 @@ There can be arbitrarily many half siblings, since the depth difference between 
   (repeatable-motion-define 'cpo-outline-down-to-last-descendant nil)
   (repeatable-motion-define-pair 'cpo-outline-inorder-traversal-forward 'cpo-outline-inorder-traversal-backward)
   (repeatable-motion-define-pair 'cpo-outline-forward-half-or-full-sibling 'cpo-outline-backward-half-or-full-sibling)
+  (repeatable-motion-define 'cpo-outline-expand-region nil)
+  (repeatable-motion-define 'cpo-outline-expand-region/children-region nil)
   )
 
 
