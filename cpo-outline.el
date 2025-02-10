@@ -128,14 +128,16 @@ This is useful when finishing a heading and wanting to start writing something a
  ;; TODO - handle half siblings like I did for indent-tree -- instead of using outline-forward-same-level here, I need to write a forward-sibling-or-half-sibling function.
  :use-next-sibling (lambda () (ignore-errors (outline-forward-same-level 1)))
  :use-previous-sibling (lambda () (ignore-errors (outline-backward-same-level 1)))
- :use-left-finalizer-for-tree-with-no-end-delimiter (lambda () (if (cpo-outline--outline-at-anchor-point-p)
-                                                                   (line-beginning-position)
-                                                                 (outline-previous-heading)))
+ :use-left-finalizer-for-tree-with-no-end-delimiter (lambda ()
+                                                      (if (cpo-outline--outline-at-anchor-point-p)
+                                                          (line-beginning-position)
+                                                        (outline-previous-heading)))
  :use-right-finalizer-for-tree-with-no-end-delimiter (lambda ()
                                                        (outline-next-heading)
                                                        (unless (and (eobp) (not (bolp)))
                                                          (beginning-of-line)
-                                                         (backward-char 1)))
+                                                         (backward-char 1))
+                                                       (point))
  )
 
 (with-eval-after-load 'repeatable-motion
