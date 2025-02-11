@@ -3,8 +3,7 @@
 This repo has a bunch of elisp with “text object” definitions.
 They could be used stand-alone as useful emacs commands for motions, text selection, transposition, etc.
 But they also are designed specifically with my [composiphrase](https://github.com/willghatch/emacs-composiphrase) library in mind.
-I am in the process of making a demo that puts all of my recent packages together to create a modal editor with a composable editing language.
-TODO - link.
+See [the demo configuration](https://github.com/willghatch/emacs-composiphrase-demo) that uses these and other libraries to build a complete text-object-focused, composable, modal editor with an order of magnitude more operations than Vim, while also making them easier to learn and remember.
 
 These text objects typically include:
 - Motion forward/backward explicitly to the object's beginning/end.
@@ -138,4 +137,4 @@ I need to actually document things here.
 This readme just gives some vague high-level understanding of the basic ideas of the various text objects.
 It doesn't list any APIs.
 But there are a lot of them.
-See the full composiphrase demo configuration at TODO (I'm still working on it!) to see an example where all of the motions are bound.
+See the full composiphrase demo configuration to see an example where all of the motions are bound.
