@@ -1,6 +1,6 @@
 ;;; -*- lexical-binding: t; -*-
 
-(require 'cpo-smartparens)
+(require 'cpo-indent-tree)
 (require 'ert)
 
 ;; TODO - actually write a bunch of tests
@@ -50,6 +50,6 @@ b
     (search-forward "aba\n")
     (backward-char 4)
     (cpo-indent-tree-expand-region/children-region)
-    (should/mark-looking-at " *aba\n")
-    (should/looking-at "\n *ac\n"))
+    (should/looking-at " *aba\n")
+    (should/mark-looking-at " *ac\n"))
   )

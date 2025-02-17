@@ -324,7 +324,11 @@ It always moves to the FIRST sibling in the full sibling region, regardless of m
  :use-next-sibling (lambda () (cpo-indent-tree-forward-full-or-half-sibling 1))
  :use-previous-sibling (lambda () (cpo-indent-tree-forward-full-or-half-sibling -1))
  :use-left-finalizer-for-tree-with-no-end-delimiter #'line-beginning-position
- :use-right-finalizer-for-tree-with-no-end-delimiter #'line-end-position
+ :use-right-finalizer-for-tree-with-no-end-delimiter (lambda ()
+                                                       (end-of-line)
+                                                       (when (not (eobp))
+                                                         (forward-char 1))
+                                                       (point))
  )
 
 ;; TODO - for things like python, there is already a variable that this should match, and it should generally be customizable.

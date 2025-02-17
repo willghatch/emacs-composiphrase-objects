@@ -221,8 +221,7 @@ There can be arbitrarily many half siblings, since the depth difference between 
  :use-right-finalizer-for-tree-with-no-end-delimiter (lambda ()
                                                        (outline-next-heading)
                                                        (unless (and (eobp) (not (bolp)))
-                                                         (beginning-of-line)
-                                                         (backward-char 1))
+                                                         (beginning-of-line))
                                                        (point))
  )
 
