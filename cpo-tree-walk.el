@@ -418,13 +418,13 @@ Returns an interactive command to expand region.
              )
         (when new-bounds
           (if (and (region-active-p)
-                   (< (point) (mark)))
+                   (< (mark) (point)))
               (progn
-                (set-mark (cdr new-bounds))
-                (goto-char (car new-bounds)))
+                (set-mark (car new-bounds))
+                (goto-char (cdr new-bounds)))
             (progn
-              (set-mark (car new-bounds))
-              (goto-char (cdr new-bounds)))))))))
+              (set-mark (cdr new-bounds))
+              (goto-char (car new-bounds)))))))))
 
 
 (defun cpo-tree-walk--text-object-no-end-helper (lfunc rfunc up-func)
