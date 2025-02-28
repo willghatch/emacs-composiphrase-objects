@@ -2,6 +2,8 @@
 ;;; This file provides motions explicitly to the beginning/end of non-tree objects, as well as region expansion and transposition for those same objects.
 ;;; TODO - at least list the public exports of this file, which are basically all macro outputs.
 
+(require 'cpo-tree-walk)
+
 (defun cpo-text-object-stuff--at-thing-beginning-p (thing)
   "If at the beginning of a thing, return its bounds, else nil."
   (let ((b (bounds-of-thing-at-point thing)))
@@ -254,6 +256,83 @@ If no region is active, it will use (point . point)."
 
 ;;;;;
 
+;; TODO - redefine the above transpose functions in terms of this to reduce code.
+(defun cpo-text-object-stuff--transpose-forward-with-funcs-once (bounds-func forward-func)
+  (let ((bounds-1 (funcall bounds-func)))
+    (and bounds-1
+         (let ((bounds-2 (save-mark-and-excursion
+                           (goto-char (cdr bounds-1))
+                           (let ((bounds-at-end (funcall bounds-func)))
+                             (if (not (equal bounds-1 bounds-at-end))
+                                 bounds-at-end
+                               (progn (funcall forward-func)
+                                      (funcall bounds-func)))))))
+           (when (and bounds-2
+                      (cpo-tree-walk--regions-not-overlapping bounds-1 bounds-2))
+             (let* ((bounds-l (if (< (car bounds-1) (car bounds-2)) bounds-1 bounds-2))
+                    (bounds-r (if (> (car bounds-1) (car bounds-2)) bounds-1 bounds-2))
+                    (sl (buffer-substring-no-properties (car bounds-l)
+                                                        (cdr bounds-l)))
+                    (sr (buffer-substring-no-properties (car bounds-r)
+                                                        (cdr bounds-r))))
+               ;; swap regions
+               (atomic-change-group
+                 (delete-region (car bounds-r) (cdr bounds-r))
+                 (goto-char (car bounds-r))
+                 (insert sl)
+                 (delete-region (car bounds-l) (cdr bounds-l))
+                 (goto-char (car bounds-l))
+                 (insert sr))
+               ;; put cursor at beginning of bounds-2, adjusted for change
+               (if (equal bounds-1 bounds-l)
+                   (let ((len-diff (- (length sr) (length sl))))
+                     (goto-char (+ len-diff (car bounds-r))))
+                 (goto-char (car bounds-l)))
+               (undo-boundary)))))))
+
+(defun cpo-text-object-stuff--transpose-backward-with-funcs-once (bounds-func backward-func forward-func)
+  (let ((bounds-1 (funcall bounds-func)))
+    (and bounds-1
+         (let ((bounds-2 (save-mark-and-excursion
+                           (goto-char (car bounds-1))
+                           (funcall backward-func)
+                           (funcall bounds-func))))
+           (when (and bounds-2
+                      (<= (cdr bounds-2) (car bounds-1)))
+             (goto-char (car bounds-2))
+             (cpo-text-object-stuff--transpose-forward-with-funcs-once bounds-func forward-func)
+             (goto-char (car bounds-2)))))))
+
+(defmacro cpo-text-object-stuff--define-transpose-funcs
+    ;; TODO - must use symbols for func names at call site to not make duplicate closures
+    (backward-name forward-name bounds-func move-backward-func move-forward-func)
+  `(progn
+     (defun ,forward-name (&optional count)
+       "TODO"
+       (interactive "p")
+       (let* ((count (or count 1))
+              (fwd (<= 0 count))
+              (count (abs count)))
+         (if fwd
+             (dotimes (i count)
+               (cpo-text-object-stuff--transpose-forward-with-funcs-once
+                ,bounds-func
+                ,move-forward-func))
+           (,backward-name count))))
+     (defun ,backward-name (&optional count)
+       "TODO"
+       (interactive "p")
+       (let* ((count (or count 1))
+              (fwd (<= 0 count))
+              (count (abs count)))
+         (if fwd
+             (dotimes (i count)
+               (cpo-text-object-stuff--transpose-backward-with-funcs-once
+                ,bounds-func
+                ,move-backward-func
+                ,move-forward-func))
+           (,forward-name count))))))
+
 ;;;;;
 
 (cpo-text-object-stuff--def-move-thing word :strict nil)
@@ -379,6 +458,9 @@ If COUNT is negative, move backward."
   (interactive "p")
   (cpo-forward-url-beginning (- (or count 1))))
 
+;; TODO - abstract these movements to the end of a URL to be functions for
+;; moving to the end of any text object that has motion to a beginning but not
+;; an end.
 (defun cpo-backward-url-end (&optional count)
   "Move backward to the end of a URL, COUNT times."
   (interactive "p")
@@ -471,7 +553,16 @@ If COUNT is negative, move backward."
   (repeatable-motion-define-pair 'cpo-forward-url-end 'cpo-backward-url-end))
 
 ;;(cpo-text-object-stuff--def-move-thing-with-bounds-but-no-motion url)
+(defun cpo-text-object-stuff--bounds-of-url-at-point ()
+  (bounds-of-thing-at-point 'url))
 (cpo-text-object-stuff--def-expand-region-to-thing url)
+(cpo-text-object-stuff--define-transpose-funcs
+ cpo-transpose-url-backward
+ cpo-transpose-url-forward
+ 'cpo-text-object-stuff--bounds-of-url-at-point
+ 'cpo-backward-url-beginning
+ 'cpo-forward-url-beginning
+ )
 ;; TODO - add keyword args for transpose functions to use different movement func.  But that said, these are so inefficient, they would be extremely frustrating if the things aren't quite close.  These movements really can't be generic and any good.
 ;;(cpo-text-object-stuff--def-transpose-thing url)
 
