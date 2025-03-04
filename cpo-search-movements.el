@@ -138,7 +138,11 @@ is the opposite."
 
 (defun cpo-find-char-beginning-in-line-forward (&optional n)
   (interactive "p")
-  (let ((c (read-char "char to find:")))
+  ;; Note than read-char needs the inherit-input-method to be true to properly
+  ;; read some (eg. multibyte) unicode characters.  If you have a custom
+  ;; keyboard layout, you might like to type various unicode characters
+  ;; directly, such as curly quotation marks.
+  (let ((c (read-char "char to find:" t)))
     (setq cpo--find-char-in-line/impl-last-char c)
     (setq cpo--find-char-in-line/impl-last-style 'beginning)
     (cpo--find-char-in-line/impl c n 'beginning)))
@@ -150,7 +154,7 @@ is the opposite."
 
 (defun cpo-find-char-end-in-line-forward (&optional n)
   (interactive "p")
-  (let ((c (read-char "char to find:")))
+  (let ((c (read-char "char to find:" t)))
     (setq cpo--find-char-in-line/impl-last-char c)
     (setq cpo--find-char-in-line/impl-last-style 'end)
     (cpo--find-char-in-line/impl c n 'end)))
