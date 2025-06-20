@@ -375,6 +375,7 @@ It always moves to the FIRST sibling in the full sibling region, regardless of m
     (and reg
          (progn (goto-char (cdr reg))
                 (insert "\n")
+                (backward-char 1)
                 (dotimes (i indentation) (insert " "))))))
 (defun cpo-indent-tree-open-sibling-backward ()
   (interactive)
