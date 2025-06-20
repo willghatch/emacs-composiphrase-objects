@@ -535,10 +535,19 @@ If no region is given, it uses the current region (or ((point) . (point))).
          `((fset ',def-expand-region-to-children/ancestor-generation
                  (cpo-tree-walk--expand-region (cpo-tree-walk--expanded-region ,children-bounds-func ,up-func) 'strictly-grow))))))
 
-(defun cpo-tree-walk--ancestor-reorder (parent-to-ancestor-distance expand-region-func)
+(defun cpo-tree-walk--ancestor-reorder (parent-to-ancestor-distance expand-region-func &optional fixup-func)
   "Given operations for regions, and a number for the distance between parent and the ancestor to swap it with, swap ancestors.
 This always swaps the parent of the tree object at point with its parent or some ancestor.
-TODO - add an optional fix-up function, eg. to fix indentation for indent tree, fix org-mode depth, etc.
+
+The optional fixup functions can adjust details and move point to an appropriate place.
+The fixup function receives the following arguments:
+(0) ancestor region bounds, as pair
+(1) child region bounds, as pair
+(2) original parent region bounds, as pair
+(3) new parent region bounds, as pair
+
+Note that those positions (aside from point) must be in increasing order.
+So the only things that will be different between the two lists are the point and the parent region bounds.
 "
   (when (region-active-p)
     (error "starting with active region not yet supported"))
@@ -568,6 +577,15 @@ TODO - add an optional fix-up function, eg. to fix indentation for indent tree, 
                 (insert ancestor-post-text)
                 (insert parent-post-text)
                 (goto-char init-point)
+                (when fixup-func
+                  (funcall fixup-func
+                           ancestor-region
+                           init-region
+                           parent-region
+                           (cons (+ (car ancestor-region)
+                                    (length parent-pre-text))
+                                 (- (cdr ancestor-region)
+                                    (length parent-post-text)))))
                 (undo-amalgamate-change-group change-group))
             (error "regions for thing, parent, and ancestor not strictly growing")))))))
 
@@ -600,6 +618,7 @@ TODO - add an optional fix-up function, eg. to fix indentation for indent tree, 
      def-transpose-sibling-backward
 
      def-ancestor-reorder
+     use-ancestor-reorder-fixup-func
 
      def-up-to-root
      def-select-root
@@ -679,7 +698,9 @@ TODO - add an optional fix-up function, eg. to fix indentation for indent tree, 
            `(defun ,def-ancestor-reorder (count)
               ,(format "Reorder ancestors for %s.  Take the region of the thing at point, the region of the parent, and the region of the ancestor COUNT generations above parent, and swap the parent and the ancestor.  Essentially, take the ancestor out, leaving a hole in the overall buffer, take the parent out of the ancestor, leaving a hole in the ancestor, and take the child out of the parent, leaving a hole in the parent.  Reassemble putting the parent in the ancestor's old hole, the ancestor in the parent's hole, and the child in the ancestor's hole." (or use-object-name "thing"))
               (interactive "p")
-              (cpo-tree-walk--ancestor-reorder (or count 1) ',def-expand-region)))
+              (cpo-tree-walk--ancestor-reorder (or count 1)
+                                               ',def-expand-region
+                                               ,use-ancestor-reorder-fixup-func)))
          (when (or def-transpose-sibling-forward def-transpose-sibling-backward)
            `(progn
               (fset ',def-transpose-sibling-forward

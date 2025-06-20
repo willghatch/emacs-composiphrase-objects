@@ -470,6 +470,8 @@ Specifically it moves inside the parens."
   (interactive "p")
   (cpo-smartparens-join-sexp-forward (- (or count 1))))
 
+(defun cpo-smartparens--ancestor-reorder-fixup (ancestor-region child-region old-parent-region new-parent-region)
+  (indent-region (car ancestor-region) (cdr ancestor-region)))
 
 (cpo-tree-walk-define-operations
  ;; For all of these cpo-tree-walk operations, we move to the beginning of the tree node.
@@ -486,6 +488,7 @@ Specifically it moves inside the parens."
  :def-transpose-sibling-forward cpo-smartparens-transpose-sibling-forward
  :def-transpose-sibling-backward cpo-smartparens-transpose-sibling-backward
  :def-ancestor-reorder cpo-smartparens-ancestor-reorder
+ :use-ancestor-reorder-fixup-func 'cpo-smartparens--ancestor-reorder-fixup
  :def-up-to-root cpo-smartparens-up-to-root
  :def-select-root cpo-smartparens-select-root
 
