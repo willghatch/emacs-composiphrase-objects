@@ -295,6 +295,65 @@ It always moves to the FIRST sibling in the full sibling region, regardless of m
       (and (cpo-tree-walk--motion-moved (lambda () (cpo-indent-tree-down-to-first-child 1)))
            (cpo-indent-tree--cpo-indent-tree-forward-to-last-full-or-half-sibling)))))
 
+(defun cpo-indent-tree--get-indentation-region-for-line (&optional point)
+  "Returns the region for indentation of line at point."
+  (save-mark-and-excursion
+    (goto-char (or point (point)))
+    (let ((beg (progn (beginning-of-line) (point))))
+      (back-to-indentation)
+      (cons beg (point)))))
+
+(defun cpo-indent-tree--ancestor-reorder-fixup
+    (ancestor-region child-region old-parent-region new-parent-region)
+  (let* ((init-point (point))
+         (big-indent-region (cpo-indent-tree--get-indentation-region-for-line
+                             (car new-parent-region)))
+         (small-indent-region (cpo-indent-tree--get-indentation-region-for-line
+                               (car ancestor-region)))
+         (big-indent (buffer-substring-no-properties
+                      (car big-indent-region) (cdr big-indent-region)))
+         (small-indent (buffer-substring-no-properties
+                        (car small-indent-region) (cdr small-indent-region)))
+         (single-size-diff (- (length big-indent) (length small-indent)))
+         (make-replace-region
+          (lambda (new-text old-size)
+            (lambda (line-point)
+              (delete-region line-point (+ line-point old-size))
+              (goto-char line-point)
+              (insert new-text))))
+         (new-parent-line-points-pre '())
+         (new-parent-line-points-post '())
+         (new-ancestor-line-points-pre '())
+         (new-ancestor-line-points-post '()))
+    (goto-char (car ancestor-region))
+    (while (< (point) (car new-parent-region))
+      (setq new-ancestor-line-points-pre (cons (point) new-ancestor-line-points-pre))
+      (forward-line))
+    (while (< (point) (car child-region))
+      (setq new-parent-line-points-pre (cons (point) new-parent-line-points-pre))
+      (forward-line))
+    (goto-char (cdr child-region))
+    (while (< (point) (cdr new-parent-region))
+      (setq new-parent-line-points-post (cons (point) new-parent-line-points-post))
+      (forward-line))
+    (while (< (point) (cdr ancestor-region))
+      (setq new-ancestor-line-points-post (cons (point) new-ancestor-line-points-post))
+      (forward-line))
+    ;; Since the points are in reverse order, we can just map over them
+    (mapcar (funcall make-replace-region big-indent (- (cdr small-indent-region)
+                                                       (car small-indent-region)))
+            new-ancestor-line-points-post)
+    (mapcar (funcall make-replace-region small-indent (- (cdr big-indent-region)
+                                                         (car big-indent-region)))
+            (append new-parent-line-points-post new-parent-line-points-pre))
+    (mapcar (funcall make-replace-region big-indent (- (cdr small-indent-region)
+                                                       (car small-indent-region)))
+            new-ancestor-line-points-pre)
+    (let ((prefix-size-diff (* single-size-diff
+                               (- (length new-ancestor-line-points-pre)
+                                  (length new-parent-line-points-pre)))))
+      (goto-char (+ init-point prefix-size-diff)))))
+
 (cpo-tree-walk-define-operations
  :def-inorder-forward cpo-indent-tree-inorder-traversal-forward
  :def-inorder-backward cpo-indent-tree-inorder-traversal-backward
@@ -315,6 +374,9 @@ It always moves to the FIRST sibling in the full sibling region, regardless of m
 
  :def-up-to-root cpo-indent-tree-up-to-root
  :def-select-root cpo-indent-tree-select-root
+
+ :def-ancestor-reorder cpo-indent-tree-ancestor-reorder
+ :use-ancestor-reorder-fixup-func 'cpo-indent-tree--ancestor-reorder-fixup
 
  :use-object-name "indentation tree"
 

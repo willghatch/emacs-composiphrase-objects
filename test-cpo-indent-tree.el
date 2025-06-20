@@ -53,3 +53,49 @@ b
     (should/looking-at " *aba\n")
     (should/mark-looking-at " *ac\n"))
   )
+
+(setq reparent-test-1-pre
+      "
+if foo()
+  i1
+  i2
+  while bar()
+    w1
+    w2
+    w3
+    pivot
+      p1
+      p2
+    w4
+    w5
+  i3
+")
+(setq reparent-test-1-post
+      "
+while bar()
+  w1
+  w2
+  w3
+  if foo()
+    i1
+    i2
+    pivot
+      p1
+      p2
+    i3
+  w4
+  w5
+")
+
+(ert-deftest test-ancestor-reorder-indent-tree ()
+  (with-temp-buffer
+    (insert reparent-test-1-pre)
+    (transient-mark-mode 1)
+    (goto-char 1)
+    (search-forward "pivot")
+    (goto-char (match-beginning 0))
+    (should/looking-at "pivot")
+    (cpo-indent-tree-ancestor-reorder 1)
+    (should (string-equal (buffer-string) reparent-test-1-post))
+    (should/looking-at "pivot")
+    ))

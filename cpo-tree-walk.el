@@ -570,7 +570,6 @@ So the only things that will be different between the two lists are the point an
                     (ancestor-post-text (buffer-substring-no-properties (cdr parent-region) (cdr ancestor-region)))
                     (change-group (prepare-change-group)))
                 (delete-region (car ancestor-region) (cdr ancestor-region))
-                ;; TODO - use fixup-function
                 (insert parent-pre-text)
                 (insert ancestor-pre-text)
                 (insert child-text)
