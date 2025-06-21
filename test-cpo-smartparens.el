@@ -38,12 +38,8 @@
     (goto-char 1)
     (search-forward "))")
     (backward-char 5)
-    ;;(message "point pre: %s, mark %s, active: %s" (point) (mark) (region-active-p))
     (cpo-smartparens-expand-region-to-any-delimiter)
-    ;;(message "point post: %s, mark: %s, active: %s" (point) (mark) (region-active-p))
-    ;;(message "point at: %s" (buffer-substring (region-beginning) (point-max)))
-    (should/mark-looking-at "(inner")
-    ;;(should/region-equal (cons 8 56))
+    (should/looking-at "(inner")
     )
 
   )
@@ -62,23 +58,22 @@
 
     (search-forward "foo")
     (cpo-smartparens-expand-region)
-    (should/mark-looking-at "foo")
+    (should/looking-at "foo")
     (cpo-smartparens-expand-region-to-any-delimiter)
-    (should/mark-looking-at "(inner")
+    (should/looking-at "(inner")
 
     (set-mark nil)
     (goto-char 1)
     (search-forward "foo")
     (backward-char 1)
     (cpo-smartparens-expand-region-to-any-delimiter)
-    (should/mark-looking-at "(inner")
+    (should/looking-at "(inner")
 
-    ;; TODO - enable this, I didn't think this was failing, too, but it is.
     (set-mark nil)
     (goto-char 1)
     (search-forward "foo")
     (cpo-smartparens-expand-region-to-any-delimiter)
-    (should/mark-looking-at "(inner")
+    (should/looking-at "(inner")
     )
 
   )
