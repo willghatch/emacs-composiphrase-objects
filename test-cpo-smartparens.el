@@ -25,7 +25,7 @@
        (exchange-point-and-mark)
        (should/looking-at ,at-string))))
 
-(ert-deftest test-expand-region-to-any-delimiter-after-last-child ()
+(ert-deftest test-expand-region-to-any-delimiter-after-last-child_smartparens ()
   (with-temp-buffer
     (insert "
 (outer (inner foo

@@ -42,7 +42,7 @@ b
 ")
 
 
-(ert-deftest test-expand-region-to-any-delimiter-after-last-child ()
+(ert-deftest test-expand-region-to-any-delimiter-after-last-child_indent-tree ()
   (with-temp-buffer
     (insert t1)
     (transient-mark-mode 1)
