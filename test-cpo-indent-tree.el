@@ -86,6 +86,22 @@ while bar()
   w4
   w5
 ")
+(setq reparent-test-2-post_start-with-region
+      "
+while bar()
+  w1
+  if foo()
+    i1
+    i2
+    w2
+    w3
+    pivot
+      p1
+      p2
+    w4
+    i3
+  w5
+")
 
 (ert-deftest test-ancestor-reorder-indent-tree ()
   (with-temp-buffer
@@ -98,4 +114,18 @@ while bar()
     (cpo-indent-tree-ancestor-reorder 1)
     (should (string-equal (buffer-string) reparent-test-1-post))
     (should/looking-at "pivot")
+    ))
+
+(ert-deftest test-ancestor-reorder-indent-tree-with-region ()
+  (with-temp-buffer
+    (insert reparent-test-1-pre)
+    (transient-mark-mode 1)
+    (goto-char 1)
+    ;; Use region from w2 to w4
+    (search-forward "w2")
+    (beginning-of-line)
+    (set-mark (point))
+    (forward-line 6)
+    (cpo-indent-tree-ancestor-reorder 1)
+    (should (string-equal (buffer-string) reparent-test-2-post_start-with-region))
     ))

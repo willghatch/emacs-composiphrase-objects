@@ -549,11 +549,10 @@ The fixup function receives the following arguments:
 Note that those positions (aside from point) must be in increasing order.
 So the only things that will be different between the two lists are the point and the parent region bounds.
 "
-  (when (region-active-p)
-    (error "starting with active region not yet supported"))
   ;; Select the current object.
   (let ((init-point (point)))
-    (funcall expand-region-func)
+    (when (not (region-active-p))
+      (funcall expand-region-func))
     (let ((init-region (cons (region-beginning) (region-end)) ))
       ;; Select the parent object.
       (funcall expand-region-func)
