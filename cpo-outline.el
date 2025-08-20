@@ -32,22 +32,28 @@
 (defun cpo-outline-add-child-heading (&optional insert-index)
   "Insert a child heading.  If INSERT-INDEX is null, insert last child, otherwise insert at index, where 0 means insert before the current first child."
   (interactive "P")
-  (let* ((count (cond ((numberp insert-index) insert-index)
-                      ((consp insert-index) (car insert-index))
-                      (t 'last)))
-         (point-at-child (cpo-tree-walk--motion-moved
-                          (if (eq count 'last)
-                              'cpo-outline-down-to-last-child
-                            'cpo-outline-down-to-first-child))))
-    (if point-at-child
-        (if (eq count 'last)
-            (cpo-outline-add-heading-below)
-          (progn
-            (outline-forward-same-level count)
-            (cpo-outline-add-heading-above)))
-      (progn
-        (cpo-outline-add-heading-below)
-        (org-demote-subtree)))))
+  (with-undo-amalgamate
+    (let* ((count (cond ((numberp insert-index) insert-index)
+                        ((consp insert-index) (car insert-index))
+                        (t 'last)))
+           (point-at-child (cpo-tree-walk--motion-moved
+                            (if (eq count 'last)
+                                'cpo-outline-down-to-last-child
+                              'cpo-outline-down-to-first-child))))
+      (if point-at-child
+          (if (eq count 'last)
+              (cpo-outline-add-heading-below)
+            (progn
+              (outline-forward-same-level count)
+              (cpo-outline-add-heading-above)))
+        (progn
+          (cpo-outline-add-heading-below)
+          ;;(org-demote-subtree)
+          ;; instead of using demote, which is screwing up history somehow, just insert an extra star...
+          (backward-char 1)
+          (insert "*")
+          (forward-char 1)
+          )))))
 
 (defun cpo-outline-add-ancestor-next-sibling-heading (&optional ancestor-index)
   "Insert a next sibling heading for parent, or ancestor at ANCESTOR-INDEX.
