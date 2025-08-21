@@ -103,7 +103,7 @@ navigation and bounds calculation.")
       "use"
       "where"
       "async"
-      "awayt"
+      "await"
       "dyn"
       "after"
       "and"
@@ -162,6 +162,9 @@ navigation and bounds calculation.")
       "raise"
       "with"
       "yield"
+      "->"
+      "=>"
+      ":="
       )
   "List of Treesitter node types (as strings) that are “uninteresting”.
 Typically this means that they are syntactic elements that can be used as anchors that can uniquely identify a syntax node.
