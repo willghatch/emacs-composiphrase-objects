@@ -209,6 +209,7 @@ Accounts for splicing by using effective siblings."
                (>= next-pos 0)
                (< next-pos (length effective-siblings)))
       (nth next-pos effective-siblings))))
+
 (defun cpo-treesitter-qd-node-interesting-p (node)
   (and node
        (let ((type (treesit-node-type node)))
@@ -227,6 +228,15 @@ Accounts for splicing by using effective siblings."
 (defun cpo-treesitter-qd-node-at-point (&optional pt)
   (let* ((pt (or pt (point)))
          (n (treesit-node-at (point))))
+    (and n (cpo-treesitter-qd--effective-parent-until
+            n
+            #'cpo-treesitter-qd-node-interesting-p
+            'include-node))))
+
+(defun cpo-treesitter-qd--node-on (beg end)
+  "Get the smallest interesting node that covers the region from BEG to END.
+Like treesit-node-on but accounts for splicing and interesting nodes."
+  (let ((n (treesit-node-on beg end)))
     (and n (cpo-treesitter-qd--effective-parent-until
             n
             #'cpo-treesitter-qd-node-interesting-p
@@ -328,13 +338,30 @@ But this is a heuristic thing, so we'll see if it works well."
          (anchor (and sib (cpo-treesitter-qd-node-anchor-point sib))))
     (and anchor (goto-char anchor))))
 
+;;;###autoload (autoload 'cpo-treesitter-qd-expand-region "cpo-treesitter-qd.el" "" t)
+(defun cpo-treesitter-qd-expand-region ()
+  "Expand the current region to the effective parent node. "
+  (interactive)
+  (let* ((current-node (if (region-active-p)
+                           (cpo-treesitter-qd--node-on (region-beginning) (region-end))
+                         (cpo-treesitter-qd-node-at-point)))
+         (parent-node (and current-node
+                           ;; If region wasn't active before, then we just get the current node.
+                           (if (region-active-p)
+                               (cpo-treesitter-qd--effective-parent current-node)
+                             current-node))))
+    (when parent-node
+      (let ((bounds (cons (treesit-node-start parent-node)
+                          (treesit-node-end parent-node))))
+        (goto-char (car bounds))
+        (set-mark (cdr bounds))
+        (activate-mark)))))
 
 
 (cpo-tree-walk-define-operations
  :def-inorder-forward cpo-treesitter-qd-forward-inorder-traversal
  :def-inorder-backward cpo-treesitter-qd-backward-inorder-traversal
 
- :def-expand-region cpo-treesitter-qd-expand-region
  :def-expand-region-idempotent cpo-treesitter-qd-expand-region-idempotent
  :def-select-children-once cpo-treesitter-qd-select-children-region-idempotent
  :def-expand-region-to-children/ancestor-generation cpo-treesitter-qd-expand-region/children-region
@@ -368,6 +395,8 @@ But this is a heuristic thing, so we'll see if it works well."
   (repeatable-motion-define-pair 'cpo-treesitter-qd-up-to-parent-anchor-point 'cpo-treesitter-qd-down-to-first-child-anchor-point)
   (repeatable-motion-define 'cpo-treesitter-qd-down-to-last-child-anchor-point 'cpo-treesitter-qd-up-to-parent-anchor-point)
   (repeatable-motion-define 'cpo-treesitter-qd-expand-region nil)
+  (repeatable-motion-define 'cpo-treesitter-qd-expand-region-idempotent nil)
+  (repeatable-motion-define 'cpo-treesitter-qd-select-children-region-idempotent nil)
   (repeatable-motion-define 'cpo-treesitter-qd-expand-region/children-region nil)
   )
 
