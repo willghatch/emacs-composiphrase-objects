@@ -266,8 +266,13 @@ Leave the cursor on the original thing, so you can keep dragging it forward or b
     (let ((cg (prepare-change-group)))
       (while (< 0 count)
         (if fwd
-            (cpo-tree-walk--transpose-sibling-once bounds-func move-func goto-anchor-func)
-          (cpo-tree-walk--transpose-sibling-once bounds-func (or move-backward-func (lambda () (funcall move-func -1))) goto-anchor-func))
+            (cpo-tree-walk--transpose-sibling-once bounds-func
+                                                   move-func
+                                                   goto-anchor-func)
+          (cpo-tree-walk--transpose-sibling-once
+           bounds-func
+           (or move-backward-func (lambda () (funcall move-func -1)))
+           goto-anchor-func))
         (setq count (- count 1)))
       (undo-amalgamate-change-group cg))))
 
@@ -709,7 +714,7 @@ So the only things that will be different between the two lists are the point an
                        (or count 1)
                        ,(or use-bounds `',def-bounds-for-tree-with-no-end-delimiter)
                        ,use-next-sibling
-                       nil
+                       (lambda () nil)
                        ,use-previous-sibling)))
               (fset ',def-transpose-sibling-backward
                     (lambda (&optional count)
@@ -719,7 +724,7 @@ So the only things that will be different between the two lists are the point an
                        (or count 1)
                        ,(or use-bounds `',def-bounds-for-tree-with-no-end-delimiter)
                        ,use-previous-sibling
-                       nil
+                       (lambda () nil)
                        ,use-next-sibling)))))
          (when (or def-inorder-forward def-inorder-backward)
            `(cpo-tree-walk-define-inorder-traversal
