@@ -14,25 +14,18 @@
 ;;
 ;; I'm going to write a trial generic handler as cpo-treesitter-qd-*
 
-(defvar-local cpo-treesitter-qd-splicing-rules nil
+(defvar-local cpo-treesitter-qd-splicing-predicates nil
   "
-UNSTABLE - I may change the type of this.
+A (buffer-local) list of predicates on treesitter nodes to determine whether they should be spliced into their parent node.
 
-Buffer-local list of rules for splicing treesitter nodes.
-Each rule is a list (CHILD-TYPE PARENT-TYPE) specifying that nodes
-of CHILD-TYPE should be spliced into their parent when the parent
-has type PARENT-TYPE. When a node matches a splicing rule, its
+When a node matches a splicing rule, its
 children are treated as direct children of its parent node.
 
-Example: '((\"parameter_list\" \"function_call\"))
-This would cause parameter_list nodes inside function_call nodes
-to be spliced, so f(a, b, c) appears as (function f \"(\" a b c \")\")
-instead of (function (parameter_list a b c)).
-
-To configure splicing for a buffer, set this variable locally:
-  (setq-local cpo-treesitter-qd-splicing-rules
-              '((\"parameter_list\" \"function_call\")
-                (\"argument_list\" \"call_expression\")))
+For example, a function call node in treesitter may have a shape like
+(function_call func parameter_list), but to make cpo-treesitter-qd
+movements work better, you want more anchor points, so it works better as
+(function_call func \"(\" arg1 arg2 arg3 \")\"), which then lets the open
+parenthesis act as an anchor point for the (combined) node.
 
 This affects all navigation functions including parent/child/sibling
 navigation and bounds calculation.")
@@ -178,17 +171,28 @@ But that is more work.
 ")
 
 (defun cpo-treesitter-qd--node-should-be-spliced-p (node)
-  "Return non-nil if NODE should be spliced into its parent.
-Checks if NODE's type and its parent's type match any splicing rule."
-  (when (and node cpo-treesitter-qd-splicing-rules)
-    (let ((node-type (treesit-node-type node))
-          (parent (treesit-node-parent node)))
-      (when parent
-        (let ((parent-type (treesit-node-type parent)))
-          (seq-some (lambda (rule)
-                      (and (equal (car rule) node-type)
-                           (equal (cadr rule) parent-type)))
-                    cpo-treesitter-qd-splicing-rules))))))
+  "
+Return non-nil if NODE should be spliced into its parent based on
+'cpo-treesitter-qd-splicing-predicates'.
+"
+  (seq-find (lambda (p) (funcall p node)) cpo-treesitter-qd-splicing-predicates))
+
+(defun cpo-treesitter-qd-ancestor-list-predicate (type-strings)
+  "TYPE-STRINGS is a list of strings that represent treesitter node types.
+Returns a predicate for treesitter nodes that returns true when
+the node's type matches the first given type, its parent matches the next,
+its grandparent matches the third, etc.  Useful for setting up
+'cpo-treesitter-qd-splicing-predicates'."
+  (lambda (node)
+    (let ((types type-strings)
+          (n node)
+          (matches t))
+      (while (and matches types n)
+        (setq matches (equal (car types)
+                             (treesit-node-type n)))
+        (setq types (cdr types))
+        (setq n (treesit-node-parent n)))
+      matches)))
 
 (defun cpo-treesitter-qd--effective-parent (node)
   "Get the effective parent of NODE, accounting for splicing.
