@@ -14,6 +14,29 @@
 ;;
 ;; I'm going to write a trial generic handler as cpo-treesitter-qd-*
 
+(defvar-local cpo-treesitter-qd-splicing-rules nil
+  "
+UNSTABLE - I may change the type of this.
+
+Buffer-local list of rules for splicing treesitter nodes.
+Each rule is a list (CHILD-TYPE PARENT-TYPE) specifying that nodes
+of CHILD-TYPE should be spliced into their parent when the parent
+has type PARENT-TYPE. When a node matches a splicing rule, its
+children are treated as direct children of its parent node.
+
+Example: '((\"parameter_list\" \"function_call\"))
+This would cause parameter_list nodes inside function_call nodes
+to be spliced, so f(a, b, c) appears as (function f \"(\" a b c \")\")
+instead of (function (parameter_list a b c)).
+
+To configure splicing for a buffer, set this variable locally:
+  (setq-local cpo-treesitter-qd-splicing-rules
+              '((\"parameter_list\" \"function_call\")
+                (\"argument_list\" \"call_expression\")))
+
+This affects all navigation functions including parent/child/sibling
+navigation and bounds calculation.")
+
 (defvar-local cpo-treesitter-qd-uninteresting-node-type-list
     '("(" ")"
       "{" "}"
@@ -137,6 +160,55 @@ There are certainly improvements to be made in terms of generically using treesi
 But that is more work.
 ")
 
+(defun cpo-treesitter-qd--node-should-be-spliced-p (node)
+  "Return non-nil if NODE should be spliced into its parent.
+Checks if NODE's type and its parent's type match any splicing rule."
+  (when (and node cpo-treesitter-qd-splicing-rules)
+    (let ((node-type (treesit-node-type node))
+          (parent (treesit-node-parent node)))
+      (when parent
+        (let ((parent-type (treesit-node-type parent)))
+          (seq-some (lambda (rule)
+                      (and (equal (car rule) node-type)
+                           (equal (cadr rule) parent-type)))
+                    cpo-treesitter-qd-splicing-rules))))))
+
+(defun cpo-treesitter-qd--effective-parent (node)
+  "Get the effective parent of NODE, accounting for splicing.
+If NODE's parent should be spliced into its grandparent, returns the grandparent.
+Otherwise returns the actual parent."
+  (let ((parent (treesit-node-parent node)))
+    (if (and parent (cpo-treesitter-qd--node-should-be-spliced-p parent))
+        (cpo-treesitter-qd--effective-parent parent)
+      parent)))
+
+(defun cpo-treesitter-qd--effective-children (node)
+  "Get the effective children of NODE, accounting for splicing.
+Any child that should be spliced will have its children included
+in place of itself in the returned list."
+  (let ((result '()))
+    (dolist (child (reverse (treesit-node-children node)))
+      (if (cpo-treesitter-qd--node-should-be-spliced-p child)
+          (setq result (append (cpo-treesitter-qd--effective-children child)
+                               result))
+        (push child result)))
+    result))
+
+(defun cpo-treesitter-qd--next-effective-sibling (node fwd)
+  "Get the next effective sibling of NODE in direction FWD.
+If FWD is non-nil, gets the next sibling, otherwise gets previous.
+Accounts for splicing by using effective siblings."
+  (let* ((effective-parent (cpo-treesitter-qd--effective-parent node))
+         (effective-siblings (when effective-parent
+                               (cpo-treesitter-qd--effective-children effective-parent)))
+         (current-pos (when effective-siblings
+                        (seq-position effective-siblings node)))
+         (next-pos (when current-pos
+                     (if fwd (1+ current-pos) (1- current-pos)))))
+    (when (and next-pos
+               (>= next-pos 0)
+               (< next-pos (length effective-siblings)))
+      (nth next-pos effective-siblings))))
 (defun cpo-treesitter-qd-node-interesting-p (node)
   (and node
        (let ((type (treesit-node-type node)))
@@ -145,12 +217,20 @@ But that is more work.
                   ;;(equal type (treesit-node-string node))
                   )))))
 
+(defun cpo-treesitter-qd--effective-parent-until (node pred include-node)
+  (treesit-parent-until
+   node
+   (lambda (n) (and (not (cpo-treesitter-qd--node-should-be-spliced-p n))
+                    (funcall pred n)))
+   include-node))
+
 (defun cpo-treesitter-qd-node-at-point (&optional pt)
   (let* ((pt (or pt (point)))
          (n (treesit-node-at (point))))
-    (and n (treesit-parent-until n
-                                 #'cpo-treesitter-qd-node-interesting-p
-                                 'include-node))))
+    (and n (cpo-treesitter-qd--effective-parent-until
+            n
+            #'cpo-treesitter-qd-node-interesting-p
+            'include-node))))
 
 (defun cpo-treesitter-qd-bounds-of-thing-at-point (&optional pt)
   (let* ((pt (or pt (point)))
@@ -180,7 +260,7 @@ But this is a heuristic thing, so we'll see if it works well."
       (treesit-node-start node)
     (let ((uninteresting (seq-find
                           (lambda (x) (not (cpo-treesitter-qd-node-interesting-p x)))
-                          (treesit-node-children node))))
+                          (cpo-treesitter-qd--effective-children node))))
       (if uninteresting
           (treesit-node-start uninteresting)
         nil))))
@@ -194,21 +274,18 @@ But this is a heuristic thing, so we'll see if it works well."
          (n (cpo-treesitter-qd-node-at-point))
          (parent n)
          (_parent-set (dotimes (i count)
-                        (and parent (setq parent (treesit-node-parent parent)))))
+                        (and parent
+                             (setq parent
+                                   (cpo-treesitter-qd--effective-parent
+                                    parent)))))
          (parent-anchor (and parent (cpo-treesitter-qd-node-anchor-point parent))))
     (and parent-anchor (goto-char parent-anchor))))
 
 (defun cpo-treesitter-qd--qd-next-interesting-sibling (node fwd)
-  (let* ((sib node)
-         (_sib-set (and sib (setq sib
-                                  (if fwd
-                                      (treesit-node-next-sibling sib)
-                                    (treesit-node-prev-sibling sib))))))
+  (let ((sib (cpo-treesitter-qd--next-effective-sibling node fwd)))
     (while (and sib
                 (not (cpo-treesitter-qd-node-interesting-p sib)))
-      (setq sib (if fwd
-                    (treesit-node-next-sibling sib)
-                  (treesit-node-prev-sibling sib))))
+      (setq sib (cpo-treesitter-qd--next-effective-sibling sib fwd)))
     sib))
 
 ;;;###autoload (autoload 'cpo-treesitter-qd-forward-sibling-anchor-point "cpo-treesitter-qd.el" "" t)
@@ -229,17 +306,12 @@ But this is a heuristic thing, so we'll see if it works well."
   (cpo-treesitter-qd-forward-sibling-anchor-point (- (or count 1))))
 
 (defun cpo-treesitter-qd--qd-first-interesting-child (node)
-  (let ((sib (treesit-node-child node 0)))
-    (while (and sib
-                (not (cpo-treesitter-qd-node-interesting-p sib)))
-      (setq sib (treesit-node-next-sibling sib)))
-    sib))
+  (let ((children (cpo-treesitter-qd--effective-children node)))
+    (seq-find #'cpo-treesitter-qd-node-interesting-p children)))
+
 (defun cpo-treesitter-qd--qd-last-interesting-child (node)
-  (let ((sib (treesit-node-child node -1)))
-    (while (and sib
-                (not (cpo-treesitter-qd-node-interesting-p sib)))
-      (setq sib (treesit-node-prev-sibling sib)))
-    sib))
+  (let ((children (cpo-treesitter-qd--effective-children node)))
+    (seq-find #'cpo-treesitter-qd-node-interesting-p (reverse children))))
 
 ;;;###autoload (autoload 'cpo-treesitter-qd-down-to-first-child-anchor-point "cpo-treesitter-qd.el" "" t)
 (defun cpo-treesitter-qd-down-to-first-child-anchor-point ()
