@@ -152,6 +152,23 @@ navigation and bounds calculation.")
       "typeof_unqual"
       "unison"
       "volatile"
+      "def"
+      "as"
+      "del"
+      "assert"
+      "class"
+      "except"
+      "finally"
+      "from"
+      "global"
+      "nonlocal"
+      "import"
+      "is"
+      "lambda"
+      "pass"
+      "raise"
+      "with"
+      "yield"
       )
   "List of Treesitter node types (as strings) that are “uninteresting”.
 Typically this means that they are syntactic elements that can be used as anchors that can uniquely identify a syntax node.
