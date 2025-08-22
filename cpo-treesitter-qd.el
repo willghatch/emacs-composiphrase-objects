@@ -40,6 +40,8 @@ navigation and bounds calculation.")
       "-"
       "*"
       "/"
+      "//"
+      "**"
       "~"
       "!"
       "="
