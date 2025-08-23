@@ -380,28 +380,47 @@ GET-BOUNDS-FUNC: takes an anchor point and returns a region or nil.
 UP-FUNC: tree move to parent function.
 "
   (letrec ((grow-func
-            (lambda (strictly-grow anchor-point region)
+            (lambda (strictly-grow anchor-point-or-region region)
               "
-Walks up the tree from ANCHOR-POINT and returns the first region that covers REGION.
+Walks up the tree from ANCHOR-POINT-OR-REGION and returns the first region that covers REGION.
+ANCHOR-POINT-OR-REGION can be either a single point (number) or a region (cons pair).
 If STRICTLY-GROW, then the returned region is strictly larger.
 Returns nil if it can't get an appropriate region.
-The anchor-point doesn't necessarily need to be in the region.
+The anchor doesn't necessarily need to be in the region.
 It does not actually move the active region, it just takes and returns region data as cons pairs.
 If REGION is null, then any region succeeds.
 "
-              (let ((compare-func (if strictly-grow
-                                      'cpo-tree-walk--region-strictly-less
-                                    'cpo-tree-walk--region-less-or-equal)))
-                (save-mark-and-excursion
-                  (let* ((bounds (funcall get-bounds-func anchor-point))
-                         (success (and bounds (or (and (not region) bounds)
-                                                  (funcall compare-func region bounds)))))
+              (let* ((compare-func (if strictly-grow
+                                       'cpo-tree-walk--region-strictly-less
+                                     'cpo-tree-walk--region-less-or-equal))
+                     (is-region-input (consp anchor-point-or-region))
+                     (bounds (if is-region-input
+                                 anchor-point-or-region
+                               (save-mark-and-excursion
+                                 (funcall get-bounds-func anchor-point-or-region))))
+                     (success (and bounds (or (and (not region) bounds)
+                                              (funcall compare-func region bounds)))))
 
-                    (if success
-                        success
-                      (and
-                       (cpo-tree-walk--motion-moved up-func)
-                       (funcall grow-func strictly-grow (point) region)))))))))
+                (if success
+                    success
+                  (and
+                   (if is-region-input
+                       ;; For region input, set up region and try to expand
+                       (progn
+                         (goto-char (car bounds))
+                         (set-mark (cdr bounds))
+                         (activate-mark)
+                         (cpo-tree-walk--motion-moved up-func))
+                     ;; For point input, go to point and try to move up
+                     (progn
+                       (goto-char anchor-point-or-region)
+                       (cpo-tree-walk--motion-moved up-func)))
+                   (funcall grow-func
+                            strictly-grow
+                            (if is-region-input
+                                (cons (region-beginning) (region-end))
+                              (point))
+                            region)))))))
     grow-func))
 
 (defun cpo-tree-walk--expand-region (expansion-func strictly-grow)
@@ -706,6 +725,9 @@ node below that on each side, and take the max/min of those two regions."
 
      use-bounds
      use-children-bounds
+
+     ;; use-up-to-parent-region-for-expand-func is used for region expansion for cases where anchor points aren't always available.  IE treesitter.
+     use-up-to-parent-region-for-expand-func
      )
   ;; TODO - add error checking to be sure requirements are met for each non-null thing to be defined
   `(progn
@@ -754,7 +776,7 @@ node below that on each side, and take the max/min of those two regions."
              ;; TODO - generalize this
              :bounds-func ,(or use-bounds `',def-bounds-for-tree-with-no-end-delimiter)
              :children-bounds-func ,(or use-children-bounds `',def-children-bounds-for-tree-with-no-end-delimiter)
-             :up-func ,use-up-to-parent))
+             :up-func ,(or use-up-to-parent-region-for-expand-func use-up-to-parent)))
          (when def-up-to-root
            `(defun ,def-up-to-root ()
               ,(format "Go up to the top tree ancestor for %s." use-object-name)

@@ -364,10 +364,8 @@ But this is a heuristic thing, so we'll see if it works well."
          (anchor (and sib (cpo-treesitter-qd-node-anchor-point sib))))
     (and anchor (goto-char anchor))))
 
-;;;###autoload (autoload 'cpo-treesitter-qd-expand-region "cpo-treesitter-qd.el" "" t)
-(defun cpo-treesitter-qd-expand-region ()
-  "Expand the current region to the effective parent node. "
-  (interactive)
+
+(defun cpo-treesitter-qd--up-to-parent-region-from-region ()
   (let* ((current-node (if (region-active-p)
                            (cpo-treesitter-qd--node-on (region-beginning) (region-end))
                          (cpo-treesitter-qd-node-at-point)))
@@ -380,14 +378,14 @@ But this is a heuristic thing, so we'll see if it works well."
       (let ((bounds (cons (treesit-node-start parent-node)
                           (treesit-node-end parent-node))))
         (goto-char (car bounds))
-        (set-mark (cdr bounds))
-        (activate-mark)))))
+        (set-mark (cdr bounds))))))
 
 
+;;;###autoload (autoload 'cpo-treesitter-qd-expand-region "cpo-treesitter-qd.el" "" t)
 (cpo-tree-walk-define-operations
  :def-inorder-forward cpo-treesitter-qd-forward-inorder-traversal
  :def-inorder-backward cpo-treesitter-qd-backward-inorder-traversal
-
+ :def-expand-region cpo-treesitter-qd-expand-region
  :def-expand-region-idempotent cpo-treesitter-qd-expand-region-idempotent
  :def-select-children-once cpo-treesitter-qd-select-children-region-idempotent
  :def-expand-region-to-children/ancestor-generation cpo-treesitter-qd-expand-region/children-region
@@ -397,12 +395,14 @@ But this is a heuristic thing, so we'll see if it works well."
  :def-ancestor-reorder cpo-treesitter-qd-ancestor-reorder
  :def-up-to-root cpo-treesitter-qd-up-to-root
  :def-select-root cpo-treesitter-qd-select-root
+ :def-visual-modifier cpo-treesitter-qd-estate-visual-modifier
 
  :use-object-name "treesitter tree (via 'treesit.el', using quick-and-dirty cpo-treesitter-qd movement and selection)"
 
  :use-down-to-last-child 'cpo-treesitter-qd-down-to-last-child-anchor-point
 
  :use-up-to-parent 'cpo-treesitter-qd-up-to-parent-anchor-point
+ :use-up-to-parent-region-for-expand-func 'cpo-treesitter-qd--up-to-parent-region-from-region
  :use-down-to-first-child 'cpo-treesitter-qd-down-to-first-child-anchor-point
  :use-next-sibling 'cpo-treesitter-qd-forward-sibling-anchor-point
  :use-previous-sibling 'cpo-treesitter-qd-backward-sibling-anchor-point
