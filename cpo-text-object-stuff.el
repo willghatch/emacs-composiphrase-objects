@@ -189,8 +189,50 @@ If no region is active, it will use (point . point)."
 
 ;;;;;;
 
+(defun cpo-text-object-stuff--swap-regions-and-restore-selection (bounds-1 bounds-2 region-was-active &optional cursor-to-first)
+  "Swap the text in BOUNDS-1 and BOUNDS-2, restoring region selection if needed.
+BOUNDS-1 and BOUNDS-2 should be cons pairs (start . end).
+If REGION-WAS-ACTIVE is non-nil, restores the region to cover the same text in its new position.
+If CURSOR-TO-FIRST is non-nil and no region is active, positions cursor at start of first region.
+Returns the new position information as (new-bounds-1 . new-bounds-2)."
+  (when (and bounds-1 bounds-2
+             (<= (cdr bounds-1) (car bounds-2)))
+    (let ((s1 (buffer-substring-no-properties (car bounds-1) (cdr bounds-1)))
+          (s2 (buffer-substring-no-properties (car bounds-2) (cdr bounds-2))))
+      ;; swap regions
+      (atomic-change-group
+        (delete-region (car bounds-2) (cdr bounds-2))
+        (goto-char (car bounds-2))
+        (insert s1)
+        (delete-region (car bounds-1) (cdr bounds-1))
+        (goto-char (car bounds-1))
+        (insert s2))
+      ;; Calculate new positions after swap
+      (let* ((len-diff (- (length s2) (length s1)))
+             (new-bounds-1 (cons (car bounds-1) (+ (car bounds-1) (length s2))))
+             (new-bounds-2 (cons (+ len-diff (car bounds-2))
+                                 (+ len-diff (car bounds-2) (length s1)))))
+        (if region-was-active
+            ;; Restore region to cover the same text (now in new position)
+            (if cursor-to-first
+                (progn
+                  (goto-char (car new-bounds-1))
+                  (set-mark (cdr new-bounds-1))
+                  (activate-mark))
+              (progn
+                (goto-char (car new-bounds-2))
+                (set-mark (cdr new-bounds-2))
+                (activate-mark)))
+          )
+        (undo-boundary)
+        ;; Return new bounds for potential use by caller
+        (cons new-bounds-1 new-bounds-2)))))
+
 (defun cpo-text-object-stuff--transpose-thing-forward-once (thing)
-  (let ((bounds-1 (bounds-of-thing-at-point thing)))
+  (let* ((region-was-active (region-active-p))
+         (bounds-1 (if region-was-active
+                       (cons (region-beginning) (region-end))
+                     (bounds-of-thing-at-point thing))))
     (and bounds-1
          (let ((bounds-2 (save-mark-and-excursion
                            (goto-char (cdr bounds-1))
@@ -199,26 +241,13 @@ If no region is active, it will use (point . point)."
                                  bounds-at-end
                                (progn (cpo-text-object-stuff--forward-thing-beginning t thing 1)
                                       (bounds-of-thing-at-point thing)))))))
-           (when (and bounds-2
-                      (<= (cdr bounds-1) (car bounds-2)))
-             (let ((s1 (buffer-substring-no-properties (car bounds-1)
-                                                       (cdr bounds-1)))
-                   (s2 (buffer-substring-no-properties (car bounds-2)
-                                                       (cdr bounds-2))))
-               ;; swap regions
-               (atomic-change-group
-                 (delete-region (car bounds-2) (cdr bounds-2))
-                 (goto-char (car bounds-2))
-                 (insert s1)
-                 (delete-region (car bounds-1) (cdr bounds-1))
-                 (goto-char (car bounds-1))
-                 (insert s2))
-               ;; put cursor at beginning of later region
-               (let ((len-diff (- (length s2) (length s1))))
-                 (goto-char (+ len-diff (car bounds-2)))
-                 (undo-boundary))))))))
+           (cpo-text-object-stuff--swap-regions-and-restore-selection
+            bounds-1 bounds-2 region-was-active)))))
 (defun cpo-text-object-stuff--transpose-thing-backward-once (thing)
-  (let ((bounds-1 (bounds-of-thing-at-point thing)))
+  (let* ((region-was-active (region-active-p))
+         (bounds-1 (if region-was-active
+                       (cons (region-beginning) (region-end))
+                     (bounds-of-thing-at-point thing))))
     (and bounds-1
          (let ((bounds-2 (save-mark-and-excursion
                            (goto-char (car bounds-1))
@@ -226,19 +255,21 @@ If no region is active, it will use (point . point)."
                            (bounds-of-thing-at-point thing))))
            (when (and bounds-2
                       (<= (cdr bounds-2) (car bounds-1)))
-             (goto-char (car bounds-2))
-             (cpo-text-object-stuff--transpose-thing-forward-once thing)
-             (goto-char (car bounds-2)))))))
+             ;; Swap bounds-2 and bounds-1 (backward means bounds-2 comes first)
+             ;; Use cursor-to-first=t for backward positioning
+             (cpo-text-object-stuff--swap-regions-and-restore-selection
+              bounds-2 bounds-1 region-was-active t))))))
 
 (defun cpo-text-object-stuff--transpose-thing-forward (thing &optional count)
   (setq count (or count 1))
-  (let ((fwd (< 0 count))
-        (count (abs count)))
-    (while (< 0 count)
-      (if fwd
-          (cpo-text-object-stuff--transpose-thing-forward-once thing)
-        (cpo-text-object-stuff--transpose-thing-backward-once thing))
-      (setq count (- count 1)))))
+  (with-undo-amalgamate
+    (let ((fwd (< 0 count))
+          (count (abs count)))
+      (while (< 0 count)
+        (if fwd
+            (cpo-text-object-stuff--transpose-thing-forward-once thing)
+          (cpo-text-object-stuff--transpose-thing-backward-once thing))
+        (setq count (- count 1))))))
 (defun cpo-text-object-stuff--transpose-thing-backward (thing &optional count)
   (setq count (or count 1))
   (cpo-text-object-stuff--transpose-thing-forward thing (- count)))
