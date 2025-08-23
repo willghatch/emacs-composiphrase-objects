@@ -375,6 +375,8 @@ It always moves to the FIRST sibling in the full sibling region, regardless of m
  :def-up-to-root cpo-indent-tree-up-to-root
  :def-select-root cpo-indent-tree-select-root
 
+ :def-visual-modifier cpo-indent-tree-estate-visual-modifier
+
  :def-ancestor-reorder cpo-indent-tree-ancestor-reorder
  :use-ancestor-reorder-fixup-func 'cpo-indent-tree--ancestor-reorder-fixup
 

@@ -492,6 +492,8 @@ Specifically it moves inside the parens."
  :def-up-to-root cpo-smartparens-up-to-root
  :def-select-root cpo-smartparens-select-root
 
+ :def-visual-modifier cpo-smartparens-estate-visual-modifier
+
  :use-object-name "smartparens tree"
 
  :use-down-to-last-child (lambda () (and (cpo-tree-walk--motion-moved 'cpo-smartparens-down-last-child-end)

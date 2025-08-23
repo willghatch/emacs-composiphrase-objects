@@ -599,6 +599,72 @@ So the only things that will be different between the two lists are the point an
   (cpo-tree-walk--up-to-root up-func)
   (funcall expand-region-func))
 
+(defun cpo-tree-walk--collect-tree-ancestors (initial-bounds expand-region-func)
+  "Collect ancestors starting from INITIAL-BOUNDS by repeatedly calling EXPAND-REGION-FUNC.
+Returns a list of bounds (as cons pairs) from child to root."
+  (save-mark-and-excursion
+    (goto-char (car initial-bounds))
+    (set-mark (cdr initial-bounds))
+    (let ((ancestors '())
+          (current-bounds initial-bounds))
+      (while current-bounds
+        (push current-bounds ancestors)
+        (if (cpo-tree-walk--motion-moved-region expand-region-func)
+            (setq current-bounds (cons (region-beginning) (region-end)))
+          (setq current-bounds nil)))
+      ancestors)))
+
+(defun cpo-tree-walk--visual-modifier-helper (region-beg region-end bounds-func expand-region-func)
+  "Visual modifier helper for tree objects with sibling support.
+The region bounds must either together be selecting one tree OR they must be
+selecting sibling nodes that share a parent. For each end, we climb the ancestry
+tree until we find a common node, but then if possible use the bounds of one
+node below that on each side, and take the max/min of those two regions."
+  (let* (;; Get tree bounds at each region end
+         (beg-bounds (save-mark-and-excursion
+                      (goto-char region-beg)
+                      (funcall bounds-func (point))))
+         (end-bounds (save-mark-and-excursion
+                      (goto-char region-end)
+                      (funcall bounds-func (point)))))
+
+    (if (and beg-bounds end-bounds)
+        ;; If both ends have tree bounds, check if they're the same tree
+        (if (and (= (car beg-bounds) (car end-bounds))
+                 (= (cdr beg-bounds) (cdr end-bounds)))
+            ;; Same tree - return the tree bounds
+            (list (car beg-bounds) (cdr beg-bounds))
+
+          ;; Different trees - find common parent and sibling bounds
+          (let* ((beg-ancestors (cpo-tree-walk--collect-tree-ancestors beg-bounds expand-region-func))
+                 (end-ancestors (cpo-tree-walk--collect-tree-ancestors end-bounds expand-region-func))
+                 (common-ancestor
+                  (catch 'found
+                    (dolist (beg-anc (reverse beg-ancestors))
+                      (dolist (end-anc (reverse end-ancestors))
+                        (when (and (equal (car beg-anc) (car end-anc))
+                                   (equal (cdr beg-anc) (cdr end-anc)))
+                          (throw 'found beg-anc))))
+                    nil)))
+
+            (if common-ancestor
+                ;; Found common ancestor - find the sibling level bounds
+                (let* ((beg-sibling (or (cadr (member common-ancestor beg-ancestors))
+                                       beg-bounds))
+                       (end-sibling (or (cadr (member common-ancestor end-ancestors))
+                                       end-bounds))
+                       (flat (flatten-list (list beg-sibling end-sibling))))
+                  (list (apply 'min flat)
+                        (apply 'max flat)))
+
+              ;; No common ancestor found - expand to encompass both highest ancestors
+              (let ((flat (flatten-list (list (car beg-ancestors) (car end-ancestors)))))
+                (list (apply 'min flat)
+                      (apply 'max flat))))))
+
+      ;; If we can't get bounds for both ends, return original region
+      (list region-beg region-end))))
+
 (cl-defmacro cpo-tree-walk-define-operations
     (&key
      def-inorder-forward
@@ -625,6 +691,8 @@ So the only things that will be different between the two lists are the point an
 
      def-up-to-root
      def-select-root
+
+     def-visual-modifier
 
      use-object-name
 
@@ -697,6 +765,15 @@ So the only things that will be different between the two lists are the point an
               ,(format "Select region (activate region with the bounds) of top tree ancestor for %s." use-object-name)
               (interactive)
               (cpo-tree-walk--select-root ,use-up-to-parent ',def-expand-region)))
+         (when def-visual-modifier
+           `(defun ,def-visual-modifier (region-beg region-end)
+              ,(format "Visual modifier function for %s tree objects with sibling support.
+The region bounds must either together be selecting one tree OR they must be
+selecting sibling nodes that share a parent." (or use-object-name "tree"))
+              (cpo-tree-walk--visual-modifier-helper
+               region-beg region-end
+               ,(or use-bounds `',def-bounds-for-tree-with-no-end-delimiter)
+               ',def-expand-region)))
          (when def-ancestor-reorder
            `(defun ,def-ancestor-reorder (count)
               ,(format "Reorder ancestors for %s.  Take the region of the thing at point, the region of the parent, and the region of the ancestor COUNT generations above parent, and swap the parent and the ancestor.  Essentially, take the ancestor out, leaving a hole in the overall buffer, take the parent out of the ancestor, leaving a hole in the ancestor, and take the child out of the parent, leaving a hole in the parent.  Reassemble putting the parent in the ancestor's old hole, the ancestor in the parent's hole, and the child in the ancestor's hole." (or use-object-name "thing"))

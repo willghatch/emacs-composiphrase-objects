@@ -213,6 +213,7 @@ There can be arbitrarily many half siblings, since the depth difference between 
  :def-transpose-sibling-backward cpo-outline-transpose-sibling-backward
  :def-up-to-root cpo-outline-up-to-root
  :def-select-root cpo-outline-select-root
+ :def-visual-modifier cpo-outline-estate-visual-modifier
 
  :use-object-name "outline-mode header (eg. in org-mode or outline-minor-mode)"
 
