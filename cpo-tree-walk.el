@@ -224,15 +224,40 @@ If r2 is not in order, a successful return has in ordered."
 (defun cpo-tree-walk--transpose-sibling-once (bounds-func move-func goto-anchor-func)
   "Transpose a tree node forward by swapping it with its next neighbor forward, based on the given functions to operate on it.
 If GOTO-ANCHOR-FUNC is nil, then the beginning of the bounds is assumed to be the anchor point.
-Leave the cursor on the original thing, so you can keep dragging it forward or back."
-  (let ((bounds-1 (funcall bounds-func (point))))
+Leave the cursor on the original thing, so you can keep dragging it forward or back.
+If region is active, uses the region as bounds-1 instead of calling bounds-func."
+  (let* ((region-was-active (region-active-p))
+         (bounds-1 (if region-was-active
+                       (cons (region-beginning) (region-end))
+                     (funcall bounds-func (point)))))
     (and bounds-1
          (let* ((bounds-2 (save-mark-and-excursion
-                            (if goto-anchor-func
-                                (funcall goto-anchor-func)
-                              (goto-char (car bounds-1)))
-                            (and (cpo-tree-walk--motion-moved move-func)
-                                 (funcall bounds-func (point))))))
+                            (if region-was-active
+                                ;; For region case, keep moving until we find non-overlapping bounds
+                                (progn
+                                  (when (< (mark) (point))
+                                    (exchange-point-and-mark))
+                                  (if goto-anchor-func
+                                      (funcall goto-anchor-func)
+                                    (goto-char (car bounds-1)))
+                                  (let ((moved nil))
+                                    (while (and (setq moved (cpo-tree-walk--motion-moved move-func))
+                                                ;; Check if found bounds overlaps with our region.
+                                                ;; For the end, allow point to be
+                                                ;; at the boundary, but otherwise
+                                                ;; require it to be completely
+                                                ;; outside.
+                                                (not (or (< (point) (car bounds-1))
+                                                         (>= (point) (cdr bounds-1))))))
+                                    (if moved
+                                        (funcall bounds-func (point))
+                                      nil)))
+                              (progn
+                                (if goto-anchor-func
+                                    (funcall goto-anchor-func)
+                                  (goto-char (car bounds-1)))
+                                (and (cpo-tree-walk--motion-moved move-func)
+                                     (funcall bounds-func (point))))))))
            (when (and bounds-2
                       (cpo-tree-walk--regions-not-overlapping bounds-1 bounds-2))
              (let* ((s1 (buffer-substring-no-properties (car bounds-1)
@@ -252,11 +277,18 @@ Leave the cursor on the original thing, so you can keep dragging it forward or b
                  (delete-region (car bounds-earlier) (cdr bounds-earlier))
                  (goto-char (car bounds-earlier))
                  (insert s-later))
-               ;; put cursor at beginning of later region
-               (let ((len-diff (- (length s2) (length s1))))
-                 (goto-char (if b1-earlier-p
-                                (+ len-diff (car bounds-2))
-                              (car bounds-2)))
+               ;; Handle cursor positioning and region restoration
+               (let* ((len-diff (- (length s2) (length s1)))
+                      (new-bounds-earlier (cons (car bounds-earlier) (+ (car bounds-earlier) (length s-later))))
+                      (new-bounds-later (cons (+ (car bounds-later) len-diff)
+                                              (+ (car bounds-later) len-diff (length s-earlier)))))
+                 (let ((new-region-bounds (if b1-earlier-p new-bounds-later new-bounds-earlier)))
+                   (if region-was-active
+                       (progn
+                         (goto-char (car new-region-bounds))
+                         (set-mark (cdr new-region-bounds))
+                         (activate-mark))
+                     (goto-char (car new-region-bounds))))
                  (undo-boundary))))))))
 (defun cpo-tree-walk--transpose-siblings (count bounds-func move-func goto-anchor-func move-backward-func)
   "Transpose siblings COUNT times.  Use the other args to move and find the things."
