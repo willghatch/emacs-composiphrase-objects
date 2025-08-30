@@ -287,7 +287,13 @@ If region is active, uses the region as bounds-1 instead of calling bounds-func.
                        (progn
                          (goto-char (car new-region-bounds))
                          (set-mark (cdr new-region-bounds))
-                         (activate-mark))
+                         (activate-mark)
+                         ;; The region will be automatically deactivated unless
+                         ;; you set deactivate-mark to nil explicitly.  We want
+                         ;; the region to remain active to allow repeated
+                         ;; transposition, IE dragging while seeing how far it's
+                         ;; gone, via command repetition.
+                         (setq deactivate-mark nil))
                      (goto-char (car new-region-bounds))))
                  (undo-boundary))))))))
 (defun cpo-tree-walk--transpose-siblings (count bounds-func move-func goto-anchor-func move-backward-func)

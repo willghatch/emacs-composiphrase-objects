@@ -212,17 +212,23 @@ Returns the new position information as (new-bounds-1 . new-bounds-2)."
              (new-bounds-1 (cons (car bounds-1) (+ (car bounds-1) (length s2))))
              (new-bounds-2 (cons (+ len-diff (car bounds-2))
                                  (+ len-diff (car bounds-2) (length s1)))))
-        (if region-was-active
-            ;; Restore region to cover the same text (now in new position)
-            (if cursor-to-first
-                (progn
-                  (goto-char (car new-bounds-1))
-                  (set-mark (cdr new-bounds-1))
-                  (activate-mark))
+        (when region-was-active
+          ;; Restore region to cover the same text (now in new position)
+          (if cursor-to-first
               (progn
-                (goto-char (car new-bounds-2))
-                (set-mark (cdr new-bounds-2))
-                (activate-mark)))
+                (goto-char (car new-bounds-1))
+                (set-mark (cdr new-bounds-1))
+                (activate-mark))
+            (progn
+              (goto-char (car new-bounds-2))
+              (set-mark (cdr new-bounds-2))
+              (activate-mark)))
+          ;; Editing functions automatically set deactivate-mark to t, which
+          ;; then causes the region to not be active after the command.  I'm not
+          ;; sure exactly what does this, something later than the
+          ;; post-command-hook.  To force the region to be active after the
+          ;; command, we need to explicitly set deactivate-mark to nil.
+          (setq deactivate-mark nil)
           )
         (undo-boundary)
         ;; Return new bounds for potential use by caller
