@@ -86,6 +86,10 @@
                            (cpo-text-object-stuff--at-thing-beginning-p thing)
                          (cpo-text-object-stuff--at-thing-end-p thing))
                        (bounds-of-thing-at-point thing))))
+      ;; When moving forward to next beginning, if there's no thing at point
+      ;; and we're at EOL, skip the newline so the search can reach the next line.
+      (when (and fwd-beg-p (not bounds) (not (eobp)) (eolp))
+        (forward-char 1))
       (when (and bounds (<= (car bounds) orig-point (cdr bounds)))
         (goto-char (if fwd-beg-p (cdr bounds) (car bounds))))
       (let ((n-left (cpo-text-object-stuff--forward-thing strict thing (if fwd-beg-p count (- count)))))
@@ -544,8 +548,11 @@ If INCLUDE-FINAL-NEWLINE, expands to include the newline as well, which makes th
             (or
              (seq (+ word) eol)
              (+ word)
-             (seq (+ (not (any word space))) eol)
-             (+ (not (any word space)))
+             ;; Note that depending on the major-mode, newline characters may
+             ;; not be included in the space regexp, so we need to explicitly
+             ;; include a newline character in this regex.
+             (seq (+ (not (any word space "\n"))) eol)
+             (+ (not (any word space "\n")))
              )))
     (let ((vi-like-word-regexp-forward
            (rx (or vi-like-word-regexp-forward/non-blank-line

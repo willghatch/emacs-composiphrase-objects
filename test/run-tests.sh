@@ -102,6 +102,7 @@ if $RUN_CORE; then
         -l "$SCRIPT_DIR/test-cpo-indent-tree.el"
         -l "$SCRIPT_DIR/test-cpo-smartparens.el"
         -l "$SCRIPT_DIR/test-cpo-text-object-stuff.el"
+        -l "$SCRIPT_DIR/test-cpo-misc.el"
     )
 fi
 
