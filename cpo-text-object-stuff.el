@@ -586,8 +586,17 @@ If INCLUDE-FINAL-NEWLINE, expands to include the newline as well, which makes th
       (while (and (< 0 count)
                   (not (if fwd (eobp) (bobp))))
         (if fwd
-            (progn (re-search-forward vi-like-word-regexp-forward
-                                      (save-mark-and-excursion (forward-line) (point))))
+            (or (ignore-errors
+                  (re-search-forward vi-like-word-regexp-forward
+                                     (save-mark-and-excursion (forward-line) (point))))
+                ;; When at EOL, the search above fails because the
+                ;; newline is the only character within the bound.
+                ;; Skip past the newline and search the next line.
+                (when (and (not (eobp)) (eolp))
+                  (forward-char 1)
+                  (ignore-errors
+                    (re-search-forward vi-like-word-regexp-forward
+                                       (save-mark-and-excursion (forward-line) (point))))))
           ;; Backward requires special handling, because searching a regexp backward isn't a mirror of regexp searching forward...
           ;; This is going to be really inefficient, but I think the easiest way is...
           (progn
