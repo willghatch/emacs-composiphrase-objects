@@ -4,6 +4,7 @@
 ;; emacs -batch -l ert -l dependencies/carettest/carettest-tesmo.el -l ../cpo-tree-walk.el -l ../cpo-text-object-stuff.el -l test-cpo-misc.el -f ert-run-tests-batch-and-exit
 
 (require 'carettest-tesmo)
+(require 'carettest-tesmut)
 
 (carettest-tesmo-test test-vi-like-movements-forward-cpo-vi-like-word-beginning_end-of-word--fundamental-mode
                       "
@@ -173,3 +174,36 @@ camelCaseVariable = snake_case_var + hyphenated-name
                       'cpo-forward-cpo-vi-like-word-beginning
                       :setup (emacs-lisp-mode)
                       :transient-mark-mode t :points ("<p0>" "<p1>"))
+
+
+;; Transposition tests
+(carettest-tesmut-test test-vi-like-transpose-word-forward_1
+                      "foo <p>bar baz quux "
+                      "foo baz <p>bar quux "
+                      'cpo-transpose-cpo-vi-like-word-forward
+                      :setup (emacs-lisp-mode))
+(carettest-tesmut-test test-vi-like-transpose-word-forward_2
+                      "foo b<p>ar baz quux "
+                      "foo baz b<p>ar quux "
+                      'cpo-transpose-cpo-vi-like-word-forward
+                      :setup (emacs-lisp-mode))
+(carettest-tesmut-test test-vi-like-transpose-word-forward_3
+                      "foo bar<p> baz quux "
+                      "foo baz bar<p> quux "
+                      'cpo-transpose-cpo-vi-like-word-forward
+                      :setup (emacs-lisp-mode))
+(carettest-tesmut-test test-vi-like-transpose-word-backward_1
+                      "foo bar <p>baz quux "
+                      "foo <p>baz bar quux "
+                      'cpo-transpose-cpo-vi-like-word-backward
+                      :setup (emacs-lisp-mode))
+(carettest-tesmut-test test-vi-like-transpose-word-backward_2
+                      "foo bar b<p>az quux "
+                      "foo b<p>az bar quux "
+                      'cpo-transpose-cpo-vi-like-word-backward
+                      :setup (emacs-lisp-mode))
+(carettest-tesmut-test test-vi-like-transpose-word-backward_3
+                      "foo bar baz<p> quux "
+                      "foo baz<p> bar quux "
+                      'cpo-transpose-cpo-vi-like-word-backward
+                      :setup (emacs-lisp-mode))

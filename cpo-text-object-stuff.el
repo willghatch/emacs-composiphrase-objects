@@ -240,6 +240,7 @@ Returns the new position information as (new-bounds-1 . new-bounds-2)."
 
 (defun cpo-text-object-stuff--transpose-thing-forward-once (thing)
   (let* ((region-was-active (region-active-p))
+         (original-point (point))
          (bounds-1 (if region-was-active
                        (cons (region-beginning) (region-end))
                      (bounds-of-thing-at-point thing))))
@@ -251,10 +252,16 @@ Returns the new position information as (new-bounds-1 . new-bounds-2)."
                                  bounds-at-end
                                (progn (cpo-text-object-stuff--forward-thing-beginning t thing 1)
                                       (bounds-of-thing-at-point thing)))))))
-           (cpo-text-object-stuff--swap-regions-and-restore-selection
-            bounds-1 bounds-2 region-was-active)))))
+           (let ((result (cpo-text-object-stuff--swap-regions-and-restore-selection
+                          bounds-1 bounds-2 region-was-active)))
+             (when (and result (not region-was-active))
+               ;; Reposition cursor at same offset within the moved word.
+               ;; bounds-1 text (first arg) moves to new-bounds-2 (cdr of result).
+               (let ((offset (- original-point (car bounds-1))))
+                 (goto-char (+ (car (cdr result)) offset)))))))))
 (defun cpo-text-object-stuff--transpose-thing-backward-once (thing)
   (let* ((region-was-active (region-active-p))
+         (original-point (point))
          (bounds-1 (if region-was-active
                        (cons (region-beginning) (region-end))
                      (bounds-of-thing-at-point thing))))
@@ -267,8 +274,13 @@ Returns the new position information as (new-bounds-1 . new-bounds-2)."
                       (<= (cdr bounds-2) (car bounds-1)))
              ;; Swap bounds-2 and bounds-1 (backward means bounds-2 comes first)
              ;; Use cursor-to-first=t for backward positioning
-             (cpo-text-object-stuff--swap-regions-and-restore-selection
-              bounds-2 bounds-1 region-was-active t))))))
+             (let ((result (cpo-text-object-stuff--swap-regions-and-restore-selection
+                            bounds-2 bounds-1 region-was-active t)))
+               (when (and result (not region-was-active))
+                 ;; Reposition cursor at same offset within the moved word.
+                 ;; bounds-1 text (second arg) moves to new-bounds-1 (car of result).
+                 (let ((offset (- original-point (car bounds-1))))
+                   (goto-char (+ (car (car result)) offset))))))))))
 
 (defun cpo-text-object-stuff--transpose-thing-forward (thing &optional count)
   (setq count (or count 1))
