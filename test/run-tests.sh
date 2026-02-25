@@ -27,6 +27,7 @@ if [ $# -eq 0 ]; then
 fi
 
 RUN_CORE=false
+RUN_SLOW=false
 RUN_GENERATED=false
 RUN_IRTA=false
 RUN_CVG=false
@@ -40,6 +41,9 @@ for arg in "$@"; do
             ;;
         --core)
             RUN_CORE=true
+            ;;
+        --slow)
+            RUN_SLOW=true
             ;;
         --generated)
             RUN_GENERATED=true
@@ -55,6 +59,7 @@ for arg in "$@"; do
             ;;
         --all)
             RUN_CORE=true
+            RUN_SLOW=true
             RUN_GENERATED=true
             RUN_IRTA=true
             RUN_CVG=true
@@ -122,6 +127,11 @@ if $RUN_CORE; then
         -l "$SCRIPT_DIR/test-cpo-smartparens.el"
         -l "$SCRIPT_DIR/test-cpo-text-object-stuff.el"
         -l "$SCRIPT_DIR/test-cpo-misc.el"
+    )
+fi
+
+if $RUN_SLOW; then
+    TEST_ARGS+=(
     )
 fi
 

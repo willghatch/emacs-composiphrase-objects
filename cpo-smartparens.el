@@ -428,6 +428,62 @@ Specifically it moves inside the parens."
 (cpo-smartparens--def-action-with-adjusted-bounds
  cpo-smartparens-backward-slurp
  'sp-backward-slurp-sexp)
+
+(defun cpo-smartparens--has-forward-siblings-p ()
+  "Check if the delimited sexp at point has forward siblings within its parent."
+  (save-mark-and-excursion
+    (let ((sexp-bounds (cpo-smartparens--bounds-of-delimited-sexp-at-point)))
+      (and sexp-bounds
+           (goto-char (cdr sexp-bounds))
+           (progn (skip-chars-forward " \t\n")
+                  (not (or (eobp)
+                           (cpo-smartparens--before-close-delimiter-p))))))))
+
+(defun cpo-smartparens--has-backward-siblings-p ()
+  "Check if the delimited sexp at point has backward siblings within its parent."
+  (save-mark-and-excursion
+    (let ((sexp-bounds (cpo-smartparens--bounds-of-delimited-sexp-at-point)))
+      (and sexp-bounds
+           (goto-char (car sexp-bounds))
+           (progn (skip-chars-backward " \t\n")
+                  (not (or (bobp)
+                           (cpo-smartparens--at-delim-p t t))))))))
+
+;;;###autoload (autoload 'cpo-smartparens-forward-slurp-all "cpo-smartparens.el" "" t)
+(defun cpo-smartparens-forward-slurp-all ()
+  "Slurp all forward siblings into the current sexp.
+Repeatedly calls `cpo-smartparens-forward-slurp' until there are no more
+siblings to slurp, stopping at the parent boundary."
+  (interactive)
+  (let ((safety-limit 1000)
+        (count 0)
+        (continue t))
+    (while (and continue
+                (< count safety-limit)
+                (cpo-smartparens--has-forward-siblings-p))
+      (let ((saved-point (point)))
+        (if (ignore-errors (cpo-smartparens-forward-slurp) t)
+            (setq count (+ 1 count))
+          (goto-char saved-point)
+          (setq continue nil))))))
+
+;;;###autoload (autoload 'cpo-smartparens-backward-slurp-all "cpo-smartparens.el" "" t)
+(defun cpo-smartparens-backward-slurp-all ()
+  "Slurp all backward siblings into the current sexp.
+Repeatedly calls `cpo-smartparens-backward-slurp' until there are no more
+siblings to slurp, stopping at the parent boundary."
+  (interactive)
+  (let ((safety-limit 1000)
+        (count 0)
+        (continue t))
+    (while (and continue
+                (< count safety-limit)
+                (cpo-smartparens--has-backward-siblings-p))
+      (let ((saved-point (point)))
+        (if (ignore-errors (cpo-smartparens-backward-slurp) t)
+            (setq count (+ 1 count))
+          (goto-char saved-point)
+          (setq continue nil))))))
 ;;;###autoload (autoload 'cpo-smartparens-forward-barf "cpo-smartparens.el" "" t)
 (cpo-smartparens--def-action-with-adjusted-bounds
  cpo-smartparens-forward-barf

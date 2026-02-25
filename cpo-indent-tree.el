@@ -449,6 +449,100 @@ It always moves to the FIRST sibling in the full sibling region, regardless of m
     (backward-char 1)
     (dotimes (i indentation) (insert " "))))
 
+(defun cpo-indent-tree--child-indent-amount ()
+  "Get the indentation amount to use for making a sibling into a child.
+If the current node has children, use the difference between this node and the
+first child.  Otherwise use `cpo-indent-tree--indent-amount'."
+  (let ((my-indent (current-indentation)))
+    (save-mark-and-excursion
+      (if (cpo-indent-tree-down-to-first-child 1)
+          (- (current-indentation) my-indent)
+        cpo-indent-tree--indent-amount))))
+
+(defun cpo-indent-tree-forward-slurp ()
+  "Slurp the next sibling of the current indent-tree node, making it a child.
+The next sibling's subtree is indented to become the last child of the current node."
+  (interactive)
+  (let ((orig-point (point))
+        (indent-amount (cpo-indent-tree--child-indent-amount)))
+    (save-mark-and-excursion
+      (if (not (cpo-tree-walk--motion-moved
+                (lambda () (cpo-indent-tree-forward-full-or-half-sibling 1))))
+          nil
+        (let ((sibling-bounds (cpo-indent-tree-bounds (point))))
+          (when sibling-bounds
+            (indent-rigidly (car sibling-bounds) (cdr sibling-bounds) indent-amount)
+            t))))))
+
+(defun cpo-indent-tree-backward-slurp ()
+  "Slurp the previous sibling of the current indent-tree node, making it a child.
+The previous sibling's subtree is moved below the current node's root line
+and indented to become the first child."
+  (interactive)
+  (let* ((orig-point (point))
+         (my-indent (current-indentation))
+         (indent-amount (cpo-indent-tree--child-indent-amount))
+         (sibling-info (save-mark-and-excursion
+                         (when (cpo-tree-walk--motion-moved
+                                (lambda () (cpo-indent-tree-forward-full-or-half-sibling -1)))
+                           (let ((bounds (cpo-indent-tree-bounds (point))))
+                             (when bounds
+                               (cons (point) bounds)))))))
+    (when sibling-info
+      (let* ((sibling-anchor (car sibling-info))
+             (sibling-bounds (cdr sibling-info))
+             (sibling-text (buffer-substring (car sibling-bounds) (cdr sibling-bounds)))
+             ;; The insert position is right after the current node's root line
+             (insert-pos (save-mark-and-excursion
+                           (beginning-of-line)
+                           (forward-line 1)
+                           (point))))
+        ;; Delete the sibling text first (it's before our position)
+        (let ((size-deleted (- (cdr sibling-bounds) (car sibling-bounds))))
+          (delete-region (car sibling-bounds) (cdr sibling-bounds))
+          ;; Adjust insert position since we deleted text before it
+          (let ((adjusted-insert-pos (- insert-pos size-deleted)))
+            (goto-char adjusted-insert-pos)
+            (insert sibling-text)
+            ;; Now indent the just-inserted region
+            (indent-rigidly adjusted-insert-pos (+ adjusted-insert-pos (length sibling-text)) indent-amount)
+            ;; Move point back to the original node (adjusted for the deletion and insertion)
+            (goto-char (- orig-point size-deleted))))))))
+
+(defun cpo-indent-tree-slurp-all-forward ()
+  "Slurp all forward siblings into the current indent-tree node.
+Repeatedly calls `cpo-indent-tree-forward-slurp' until there are no more
+siblings to slurp."
+  (interactive)
+  (let ((prev-state nil)
+        (cur-state (buffer-substring-no-properties (point-min) (point-max)))
+        (safety-limit 1000)
+        (count 0))
+    (while (and (< count safety-limit)
+                (progn
+                  (cpo-indent-tree-forward-slurp)
+                  (setq prev-state cur-state)
+                  (setq cur-state (buffer-substring-no-properties (point-min) (point-max)))
+                  (not (string-equal prev-state cur-state))))
+      (setq count (+ 1 count)))))
+
+(defun cpo-indent-tree-slurp-all-backward ()
+  "Slurp all backward siblings into the current indent-tree node.
+Repeatedly calls `cpo-indent-tree-backward-slurp' until there are no more
+siblings to slurp."
+  (interactive)
+  (let ((prev-state nil)
+        (cur-state (buffer-substring-no-properties (point-min) (point-max)))
+        (safety-limit 1000)
+        (count 0))
+    (while (and (< count safety-limit)
+                (progn
+                  (cpo-indent-tree-backward-slurp)
+                  (setq prev-state cur-state)
+                  (setq cur-state (buffer-substring-no-properties (point-min) (point-max)))
+                  (not (string-equal prev-state cur-state))))
+      (setq count (+ 1 count)))))
+
 (with-eval-after-load 'repeatable-motion
   (repeatable-motion-define-pair 'cpo-indent-tree-backward-full-sibling
                                  'cpo-indent-tree-forward-full-sibling)

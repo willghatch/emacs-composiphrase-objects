@@ -1,6 +1,7 @@
 ;;; -*- lexical-binding: t; -*-
 
 (require 'cpo-indent-tree)
+(require 'carettest-tesmut)
 (require 'ert)
 (require 'carettest-tesmo)
 
@@ -103,6 +104,128 @@ while bar()
     i3
   w5
 ")
+
+(carettest-tesmut-test
+ test-indent-tree-forward-slurp
+ "
+<p>parent
+  child1
+sibling
+s2
+"
+ "
+<p>parent
+  child1
+  sibling
+s2
+"
+ 'cpo-indent-tree-forward-slurp)
+
+(carettest-tesmut-test
+ test-indent-tree-backward-slurp
+ "
+sibling
+<p>parent
+  child1
+s2
+"
+ "
+<p>parent
+  sibling
+  child1
+s2
+"
+ 'cpo-indent-tree-backward-slurp)
+
+(carettest-tesmut-test
+ test-indent-tree-slurp-all-forward
+ "
+<p>parent
+  child1
+sib1
+sib2
+sib3
+"
+ "
+<p>parent
+  child1
+  sib1
+  sib2
+  sib3
+"
+ 'cpo-indent-tree-slurp-all-forward)
+
+(carettest-tesmut-test
+ test-indent-tree-slurp-all-backward
+ "
+sib1
+sib2
+sib3
+<p>parent
+  child1
+"
+ "
+<p>parent
+  sib1
+  sib2
+  sib3
+  child1
+"
+ 'cpo-indent-tree-slurp-all-backward)
+
+(carettest-tesmut-test
+ test-indent-tree-slurp-all-forward-stops-at-parent
+ "
+grandparent
+  <p>parent
+    child1
+  sib1
+  sib2
+gsib
+"
+ "
+grandparent
+  <p>parent
+    child1
+    sib1
+    sib2
+gsib
+"
+ 'cpo-indent-tree-slurp-all-forward)
+
+(carettest-tesmut-test
+ test-indent-tree-slurp-all-forward-no-siblings
+ "
+grandparent
+  <p>parent
+    child1
+gsib
+"
+ "
+grandparent
+  <p>parent
+    child1
+gsib
+"
+ 'cpo-indent-tree-slurp-all-forward)
+
+(carettest-tesmut-test
+ test-indent-tree-slurp-all-forward-with-subtrees
+ "
+<p>parent
+  child1
+sib1
+  sib1child
+sib2
+"
+ "
+<p>parent
+  child1
+  sib1
+    sib1child
+  sib2
+"
+ 'cpo-indent-tree-slurp-all-forward)
 
 (ert-deftest test-ancestor-reorder-indent-tree ()
   (with-temp-buffer

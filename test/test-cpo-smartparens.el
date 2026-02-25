@@ -1,6 +1,7 @@
 ;;; -*- lexical-binding: t; -*-
 
 (require 'cpo-smartparens)
+(require 'carettest-tesmut)
 (require 'ert)
 
 ;; TODO - actually write a bunch of tests
@@ -77,3 +78,66 @@
     )
 
   )
+
+(carettest-tesmut-test
+ test-smartparens-forward-slurp-1
+ :before "(<p>(a b) c d e)"
+ :after "(<p>(a b c) d e)"
+ :function 'cpo-smartparens-forward-slurp
+ :setup (progn (emacs-lisp-mode)
+               (smartparens-mode 1)
+               (setq-local sp-pair-list '(("(" . ")")))))
+
+(carettest-tesmut-test
+ test-smartparens-forward-barf-1
+ :before "(<p>(a b c) d e)"
+ :after "(<p>(a b) c d e)"
+ :function 'cpo-smartparens-forward-barf
+ :setup (progn (emacs-lisp-mode)
+               (smartparens-mode 1)
+               (setq-local sp-pair-list '(("(" . ")")))))
+
+(carettest-tesmut-test
+ test-smartparens-forward-slurp-all
+ :before "(<p>(a b) c d e)"
+ :after "(<p>(a b c d e))"
+ :function 'cpo-smartparens-forward-slurp-all
+ :setup (progn (emacs-lisp-mode)
+               (smartparens-mode 1)
+               (setq-local sp-pair-list '(("(" . ")")))))
+
+(carettest-tesmut-test
+ test-smartparens-forward-slurp-all-nested
+ :before "(o2 (outer <p>(inner a) b c) d)"
+ :after "(o2 (outer <p>(inner a b c)) d)"
+ :function 'cpo-smartparens-forward-slurp-all
+ :setup (progn (emacs-lisp-mode)
+               (smartparens-mode 1)
+               (setq-local sp-pair-list '(("(" . ")")))))
+
+(carettest-tesmut-test
+ test-smartparens-forward-slurp-all-no-siblings
+ :before "(outer <p>(inner a b))"
+ :after "(outer <p>(inner a b))"
+ :function 'cpo-smartparens-forward-slurp-all
+ :setup (progn (emacs-lisp-mode)
+               (smartparens-mode 1)
+               (setq-local sp-pair-list '(("(" . ")")))))
+
+(carettest-tesmut-test
+ test-smartparens-backward-slurp-all-no-siblings
+ :before "(<p>(inner a b) c)"
+ :after "(<p>(inner a b) c)"
+ :function 'cpo-smartparens-backward-slurp-all
+ :setup (progn (emacs-lisp-mode)
+               (smartparens-mode 1)
+               (setq-local sp-pair-list '(("(" . ")")))))
+
+(carettest-tesmut-test
+ test-smartparens-backward-slurp-all
+ :before "(o2 (outer a b c <p>(inner d)) e)"
+ :after "(o2 (<p>(outer a b c inner d)) e)"
+ :function 'cpo-smartparens-backward-slurp-all
+ :setup (progn (emacs-lisp-mode)
+               (smartparens-mode 1)
+               (setq-local sp-pair-list '(("(" . ")")))))
