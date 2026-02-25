@@ -151,12 +151,15 @@ This is useful when finishing a heading and wanting to start writing something a
                    (cpo-tree-walk--motion-moved
                     (lambda () (ignore-errors (outline-previous-heading)))))
          (let ((cur-level (org-current-level)))
-           (message "cur-level: %s, cur-point: %s, min-level: %s" cur-level (point) min-level)
            (when (not min-level)
              (setq min-level cur-level)
              (setq min-level-point (point)))
+           ;; Only update min-level-point for strictly shallower levels,
+           ;; not for same-level headings.  This ensures backward
+           ;; half-sibling goes to the nearest (last) heading in the
+           ;; preceding half-sibling group rather than the first.
            (when (and (< parent-level cur-level)
-                      (<= cur-level min-level))
+                      (< cur-level min-level))
              (setq min-level cur-level)
              (setq min-level-point (point)))
            (when (<= cur-level start-level)
@@ -170,6 +173,43 @@ This is useful when finishing a heading and wanting to start writing something a
       ((not min-level)
        nil)
       (t (goto-char min-level-point))))))
+
+(defun cpo-outline-forward-full-sibling (num)
+  "Go forward to full sibling of outline-tree node at point NUM times, going backward for negative NUM.
+Return the (positive) number of iterations that could NOT be done (IE returns 0 for full success).
+Notably this will stop if it hits a half-sibling boundary, only moving to headings at exactly the same level."
+  (interactive "p")
+  (let* ((direction (if (< 0 num) 1 -1))
+         (times (abs num))
+         (index 0)
+         (successful t))
+    (while (and (< index times)
+                successful)
+      (let ((moved (cpo-tree-walk--motion-moved
+                    (lambda ()
+                      (ignore-errors
+                        (if (< 0 direction)
+                            (outline-forward-same-level 1)
+                          (outline-backward-same-level 1)))))))
+        (if moved
+            (setq index (+ 1 index))
+          (setq successful nil))))
+    (- times index)))
+
+(defun cpo-outline-backward-full-sibling (num)
+  "The reverse of `cpo-outline-forward-full-sibling'."
+  (interactive "p")
+  (cpo-outline-forward-full-sibling (* -1 (or num 1))))
+
+(defun cpo-outline-forward-to-last-full-sibling ()
+  "Move forward to the last full sibling at the same outline level."
+  (interactive)
+  (while (cpo-tree-walk--motion-moved (lambda () (cpo-outline-forward-full-sibling 1)))))
+
+(defun cpo-outline-backward-to-first-full-sibling ()
+  "Move backward to the first full sibling at the same outline level."
+  (interactive)
+  (while (cpo-tree-walk--motion-moved (lambda () (cpo-outline-forward-full-sibling -1)))))
 
 (defun cpo-outline-forward-half-or-full-sibling (&optional count half-sibling-only)
   "Move forward by half or full outline sibling.
@@ -234,6 +274,7 @@ There can be arbitrarily many half siblings, since the depth difference between 
 
 (with-eval-after-load 'repeatable-motion
   (repeatable-motion-define-pair 'outline-forward-same-level 'outline-backward-same-level)
+  (repeatable-motion-define-pair 'cpo-outline-forward-full-sibling 'cpo-outline-backward-full-sibling)
   (repeatable-motion-define-pair 'cpo-outline-down-to-first-child 'outline-up-heading)
   (repeatable-motion-define 'cpo-outline-down-to-last-child 'outline-up-heading)
   (repeatable-motion-define 'cpo-outline-down-to-last-descendant nil)

@@ -2,6 +2,7 @@
 
 (require 'cpo-indent-tree)
 (require 'ert)
+(require 'carettest-tesmo)
 
 ;; TODO - actually write a bunch of tests
 
@@ -129,3 +130,245 @@ while bar()
     (cpo-indent-tree-ancestor-reorder 1)
     (should (string-equal (buffer-string) reparent-test-2-post_start-with-region))
     ))
+
+
+;;; Half-sibling tests for indent-tree
+;;; Test data has a parent with children at varying indentation levels,
+;;; where the first child is indented more than later children.
+
+;;; Forward full sibling: deep1 -> deep2 (success, returns 0)
+(carettest-tesmo-test test-indent-tree-forward-full-sibling_deep1-to-deep2
+                      "
+root
+      <p0>deep1
+      <p1>deep2
+    mid1
+    mid2
+  shallow1
+  shallow2
+"
+                      (lambda () (should (= 0 (cpo-indent-tree-forward-full-sibling 1)))))
+
+(carettest-tesmo-test test-indent-tree-forward-full-sibling_deep1-to-deep2_midstuff
+                      "
+root
+      <p0>deep1
+        child-of-deep1
+      <p1>deep2
+    mid1
+    mid2
+  shallow1
+  shallow2
+"
+                      (lambda () (should (= 0 (cpo-indent-tree-forward-full-sibling 1)))))
+
+;;; Forward full sibling from deep2 should fail (mid1 is half sibling, returns 1)
+(carettest-tesmo-test test-indent-tree-forward-full-sibling_deep2-stalls
+                      "
+root
+      deep1
+      <p0><p1>deep2
+    mid1
+    mid2
+  shallow1
+  shallow2
+"
+                      (lambda () (should (= 1 (cpo-indent-tree-forward-full-sibling 1)))))
+
+;;; Forward half-or-full sibling: deep1 -> deep2
+(carettest-tesmo-test test-indent-tree-forward-full-or-half-sibling_deep1-to-deep2
+                      "
+root
+      <p0>deep1
+      <p1>deep2
+    mid1
+    mid2
+  shallow1
+  shallow2
+"
+                      (lambda () (should (= 0 (cpo-indent-tree-forward-full-or-half-sibling 1)))))
+
+
+(carettest-tesmo-test test-indent-tree-forward-full-or-half-sibling_deep1-to-deep2_with-intermediate
+                      "
+root
+      <p0>deep1
+        child-of-deep1
+      <p1>deep2
+    mid1
+    mid2
+  shallow1
+  shallow2
+"
+                      (lambda () (should (= 0 (cpo-indent-tree-forward-full-or-half-sibling 1)))))
+
+;;; Forward half-or-full sibling: deep2 -> mid1 (crosses boundary)
+(carettest-tesmo-test test-indent-tree-forward-full-or-half-sibling_deep2-to-mid1
+                      "
+root
+      deep1
+      <p0>deep2
+    <p1>mid1
+    mid2
+  shallow1
+  shallow2
+"
+                      (lambda () (should (= 0 (cpo-indent-tree-forward-full-or-half-sibling 1)))))
+
+
+(carettest-tesmo-test test-indent-tree-forward-full-or-half-sibling_deep2-to-mid1_with-intermediate
+                      "
+root
+      deep1
+      <p0>deep2
+        deeper
+    <p1>mid1
+    mid2
+  shallow1
+  shallow2
+"
+                      (lambda () (should (= 0 (cpo-indent-tree-forward-full-or-half-sibling 1)))))
+
+;;; Forward half-or-full sibling: mid1 -> mid2
+(carettest-tesmo-test test-indent-tree-forward-full-or-half-sibling_mid1-to-mid2
+                      "
+root
+      deep1
+      deep2
+    <p0>mid1
+    <p1>mid2
+  shallow1
+  shallow2
+"
+                      (lambda () (should (= 0 (cpo-indent-tree-forward-full-or-half-sibling 1)))))
+
+;;; Forward half-or-full sibling: mid2 -> shallow1 (crosses boundary)
+(carettest-tesmo-test test-indent-tree-forward-full-or-half-sibling_mid2-to-shallow1
+                      "
+root
+      deep1
+      deep2
+    mid1
+    <p0>mid2
+  <p1>shallow1
+  shallow2
+"
+                      (lambda () (should (= 0 (cpo-indent-tree-forward-full-or-half-sibling 1)))))
+
+;;; Backward full sibling: mid2 -> mid1 (success, returns 0)
+(carettest-tesmo-test test-indent-tree-backward-full-sibling_mid2-to-mid1
+                      "
+root
+      deep1
+      deep2
+    <p1>mid1
+    <p0>mid2
+  shallow1
+  shallow2
+"
+                      (lambda () (should (= 0 (cpo-indent-tree-forward-full-sibling -1)))))
+
+;;; Backward full sibling from mid1 should fail (deep2 is half sibling, returns 1)
+(carettest-tesmo-test test-indent-tree-backward-full-sibling_mid1-stalls
+                      "
+root
+      deep1
+      deep2
+    <p0><p1>mid1
+    mid2
+  shallow1
+  shallow2
+"
+                      (lambda () (should (= 1 (cpo-indent-tree-forward-full-sibling -1)))))
+
+;;; Backward half-or-full sibling: shallow2 -> shallow1
+(carettest-tesmo-test test-indent-tree-backward-full-or-half-sibling_shallow2-to-shallow1
+                      "
+root
+      deep1
+      deep2
+    mid1
+    mid2
+  <p1>shallow1
+  <p0>shallow2
+"
+                      (lambda () (should (= 0 (cpo-indent-tree-forward-full-or-half-sibling -1)))))
+
+;;; Backward half-or-full sibling: shallow1 -> mid2 (crosses boundary)
+(carettest-tesmo-test test-indent-tree-backward-full-or-half-sibling_shallow1-to-mid2
+                      "
+root
+      deep1
+      deep2
+    mid1
+    <p1>mid2
+  <p0>shallow1
+  shallow2
+"
+                      (lambda () (should (= 0 (cpo-indent-tree-forward-full-or-half-sibling -1)))))
+
+;;; Backward half-or-full sibling: mid2 -> mid1
+(carettest-tesmo-test test-indent-tree-backward-full-or-half-sibling_mid2-to-mid1
+                      "
+root
+      deep1
+      deep2
+    <p1>mid1
+    <p0>mid2
+  shallow1
+  shallow2
+"
+                      (lambda () (should (= 0 (cpo-indent-tree-forward-full-or-half-sibling -1)))))
+
+;;; Backward half-or-full sibling: mid1 -> deep2 (crosses boundary)
+(carettest-tesmo-test test-indent-tree-backward-full-or-half-sibling_mid1-to-deep2
+                      "
+root
+      deep1
+      <p1>deep2
+    <p0>mid1
+    mid2
+  shallow1
+  shallow2
+"
+                      (lambda () (should (= 0 (cpo-indent-tree-forward-full-or-half-sibling -1)))))
+
+
+(carettest-tesmo-test test-indent-tree-backward-full-or-half-sibling_mid1-to-deep2_with-intermediate
+                      "
+root
+      deep1
+      <p1>deep2
+        child-of-deep2
+    <p0>mid1
+    mid2
+  shallow1
+  shallow2
+"
+                      (lambda () (should (= 0 (cpo-indent-tree-forward-full-or-half-sibling -1)))))
+
+;;; Forward full sibling with count 3 from deep1: only reaches deep2 (returns 2)
+(carettest-tesmo-test test-indent-tree-forward-full-sibling_count-returns-remaining
+                      "
+root
+      <p0>deep1
+      <p1>deep2
+    mid1
+    mid2
+  shallow1
+  shallow2
+"
+                      (lambda () (should (= 2 (cpo-indent-tree-forward-full-sibling 3)))))
+
+;;; Forward half-or-full sibling with count 3: deep1 -> deep2 -> mid1 -> mid2
+(carettest-tesmo-test test-indent-tree-forward-full-or-half-sibling_count-crosses-boundaries
+                      "
+root
+      <p0>deep1
+      deep2
+    mid1
+    <p1>mid2
+  shallow1
+  shallow2
+"
+                      (lambda () (should (= 0 (cpo-indent-tree-forward-full-or-half-sibling 3)))))
