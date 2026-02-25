@@ -129,6 +129,7 @@ if $RUN_CORE; then
         -l "$SCRIPT_DIR/test-cpo-misc.el"
         -l "$SCRIPT_DIR/test-cpo-comma-list.el"
         -l "$SCRIPT_DIR/test-cpo-outline-heading.el"
+        -l "$SCRIPT_DIR/test-cpo-org-structure-block.el"
     )
 fi
 
