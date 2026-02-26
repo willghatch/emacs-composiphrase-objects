@@ -507,5 +507,63 @@
  :marks
  ("<m0>" "<m1>"))
 
+;;; cpo-expand-region-to-cpo-date
+
+;; Point inside date, no initial region: expands to cover the full date.
+(carettest-tesmo-test
+ test-date-movements-cpo-expand-region-to-cpo-date__inside-date
+ "text <m1>2023-01-<p0>15<p1> more text"
+ 'cpo-expand-region-to-cpo-date
+ :transient-mark-mode t
+ :points ("<p0>" "<p1>")
+ :marks ("<m0>" "<m1>"))
+
+;; Point just past end of date, no initial region: still expands to cover the full date.
+(carettest-tesmo-test
+ test-date-movements-cpo-expand-region-to-cpo-date__point-after-end
+ "text <m1>2023-01-15<p1><p0> more text"
+ 'cpo-expand-region-to-cpo-date
+ :transient-mark-mode t
+ :points ("<p0>" "<p1>")
+ :marks ("<m0>" "<m1>"))
+
+;; Both point and mark inside same date: expands to cover the full date.
+(carettest-tesmo-test
+ test-date-movements-cpo-expand-region-to-cpo-date__mark-and-point-inside
+ "text <m1>2023-<m0>01-<p0>15<p1> more text"
+ 'cpo-expand-region-to-cpo-date
+ :transient-mark-mode t
+ :points ("<p0>" "<p1>")
+ :marks ("<m0>" "<m1>"))
+
+;;; cpo-expand-region-to-cpo-datetime
+
+;; Point inside datetime, no initial region: expands to cover the full datetime.
+(carettest-tesmo-test
+ test-date-movements-cpo-expand-region-to-cpo-datetime__inside-datetime
+ "log <m1>2023-01-15T10:30:<p0>00<p1> here"
+ 'cpo-expand-region-to-cpo-datetime
+ :transient-mark-mode t
+ :points ("<p0>" "<p1>")
+ :marks ("<m0>" "<m1>"))
+
+;; Point just past end of datetime, no initial region: still expands to cover the full datetime.
+(carettest-tesmo-test
+ test-date-movements-cpo-expand-region-to-cpo-datetime__point-after-end
+ "log <m1>2023-01-15T10:30:00<p1><p0> here"
+ 'cpo-expand-region-to-cpo-datetime
+ :transient-mark-mode t
+ :points ("<p0>" "<p1>")
+ :marks ("<m0>" "<m1>"))
+
+;; Both point and mark inside same datetime: expands to cover the full datetime.
+(carettest-tesmo-test
+ test-date-movements-cpo-expand-region-to-cpo-datetime__mark-and-point-inside
+ "log <m1>2023-01-15T<m0>10:30:<p0>00<p1> here"
+ 'cpo-expand-region-to-cpo-datetime
+ :transient-mark-mode t
+ :points ("<p0>" "<p1>")
+ :marks ("<m0>" "<m1>"))
+
 (provide 'cvg-date-movements)
 ;;; cvg-date-movements.el ends here
