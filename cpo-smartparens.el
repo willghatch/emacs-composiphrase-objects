@@ -457,7 +457,7 @@ Specifically it moves inside the parens."
 
 ;;;###autoload (autoload 'cpo-smartparens-join-sexp-forward "cpo-smartparens.el" "" t)
 (defun cpo-smartparens-join-sexp-forward (&optional count)
-  "Join the delimited sexp at point with the one before it, if they have the same delimiter type."
+  "Join the delimited sexp at point with the one after it (forward), if they have the same delimiter type."
   (interactive "p")
   (let ((count (or count 1)))
     (let ((bounds (cpo-smartparens--bounds-of-delimited-sexp-at-point)))
@@ -466,7 +466,7 @@ Specifically it moves inside the parens."
         (sp-join-sexp count)))))
 ;;;###autoload (autoload 'cpo-smartparens-join-sexp-backward "cpo-smartparens.el" "" t)
 (defun cpo-smartparens-join-sexp-backward (&optional count)
-  "Join the delimited sexp at point with the one after it, if they have the same delimiter type."
+  "Join the delimited sexp at point with the one before it (backward), if they have the same delimiter type."
   (interactive "p")
   (cpo-smartparens-join-sexp-forward (- (or count 1))))
 
