@@ -71,15 +71,16 @@
  :after "(defun test-function (arg1 arg2)
   (let ((var1 (+ arg1 arg2))
         (var2 [arg1 arg2]
-        (bzaz {fnarfl}))<p>)
+              (bzaz {fnarfl}))<p>)
     (setq foo 'bar)
     ))
 "
-  :function 'cpo-smartparens-forward-slurp
-  :transient-mark-mode t
-  :setup (progn
-           (smartparens-mode 1)
-           (sp-local-pair 'emacs-lisp-mode "\"" "\"")))
+ :function 'cpo-smartparens-forward-slurp
+ :transient-mark-mode t
+ :setup (progn
+          (emacs-lisp-mode)
+          (smartparens-mode 1)
+          (sp-local-pair 'emacs-lisp-mode "\"" "\"")))
 
 (carettest-tesmo-test
  test-text-object-movements-backward-paragraph-end-2__dwrhss

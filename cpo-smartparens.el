@@ -277,36 +277,36 @@ DIRECTION can be nil to detect, 'forward, or 'backward.
 
 ;;;###autoload (autoload 'cpo-smartparens-forward-sibling-beginning "cpo-smartparens.el" "" t)
 (cpo-smartparens--command-wrap cpo-smartparens-forward-sibling-beginning
-                    cpo-smartparens--forward-sibling-beginning
-                    cpo-smartparens-backward-sibling-beginning
-                    "Move forward to the start of the next smartparens sexp sibling.")
+                               cpo-smartparens--forward-sibling-beginning
+                               cpo-smartparens-backward-sibling-beginning
+                               "Move forward to the start of the next smartparens sexp sibling.")
 
 ;;;###autoload (autoload 'cpo-smartparens-backward-sibling-beginning "cpo-smartparens.el" "" t)
 (cpo-smartparens--command-wrap cpo-smartparens-backward-sibling-beginning
-                    cpo-smartparens--backward-sibling-beginning
-                    cpo-smartparens-forward-sibling-beginning
-                    "Move backward to the start of the next smartparens sexp sibling.  Note that if not at the beginning of the current sexp, it will move to the beginning of the current, not actually to the next sibling.")
+                               cpo-smartparens--backward-sibling-beginning
+                               cpo-smartparens-forward-sibling-beginning
+                               "Move backward to the start of the next smartparens sexp sibling.  Note that if not at the beginning of the current sexp, it will move to the beginning of the current, not actually to the next sibling.")
 
 ;;;###autoload (autoload 'cpo-smartparens-forward-sibling-end "cpo-smartparens.el" "" t)
 (cpo-smartparens--command-wrap cpo-smartparens-forward-sibling-end
-                    cpo-smartparens--forward-sibling-end
-                    cpo-smartparens-backward-sibling-end
-                    "Move forward to the next end of a smartparens sexp sibling.  Note that if not at the end of the current sexp, it will move to the end of the current sexp, not actually to the next sibling.")
+                               cpo-smartparens--forward-sibling-end
+                               cpo-smartparens-backward-sibling-end
+                               "Move forward to the next end of a smartparens sexp sibling.  Note that if not at the end of the current sexp, it will move to the end of the current sexp, not actually to the next sibling.")
 
 ;;;###autoload (autoload 'cpo-smartparens-backward-sibling-end "cpo-smartparens.el" "" t)
 (cpo-smartparens--command-wrap cpo-smartparens-backward-sibling-end
-                    cpo-smartparens--backward-sibling-end
-                    cpo-smartparens-forward-sibling-end
-                    "Move backward to the next end of a smartparens sexp sibling.")
+                               cpo-smartparens--backward-sibling-end
+                               cpo-smartparens-forward-sibling-end
+                               "Move backward to the next end of a smartparens sexp sibling.")
 
 (defun cpo-smartparens--up-sexp ()
   (or (cpo-smartparens--move-if-advances 'cpo-smartparens--up-to-prefix nil)
       (sp-backward-up-sexp)))
 ;;;###autoload (autoload 'cpo-smartparens-up-parent-beginning "cpo-smartparens.el" "" t)
 (cpo-smartparens--command-wrap cpo-smartparens-up-parent-beginning
-                    cpo-smartparens--up-sexp
-                    cpo-smartparens-down-first-child-beginning
-                    "Move up to the start of the containing smartparens sexp.")
+                               cpo-smartparens--up-sexp
+                               cpo-smartparens-down-first-child-beginning
+                               "Move up to the start of the containing smartparens sexp.")
 (defun cpo-smartparens--up-sexp-end ()
   (let ((start-point (point)))
     (sp-up-sexp)
@@ -315,9 +315,9 @@ DIRECTION can be nil to detect, 'forward, or 'backward.
         (goto-char start-point))))
 ;;;###autoload (autoload 'cpo-smartparens-up-parent-end "cpo-smartparens.el" "" t)
 (cpo-smartparens--command-wrap cpo-smartparens-up-parent-end
-                    cpo-smartparens--up-sexp-end
-                    cpo-smartparens-down-first-child-beginning
-                    "Move up to the end of the containing smartparens sexp.")
+                               cpo-smartparens--up-sexp-end
+                               cpo-smartparens-down-first-child-beginning
+                               "Move up to the end of the containing smartparens sexp.")
 
 (defun cpo-smartparens--move-if-within-bounds-of-current-delimited-sexp (movement)
   (let ((start-point (point))
@@ -358,9 +358,9 @@ DIRECTION can be nil to detect, 'forward, or 'backward.
 
 ;;;###autoload (autoload 'cpo-smartparens-down-first-child-beginning "cpo-smartparens.el" "" t)
 (cpo-smartparens--command-wrap cpo-smartparens-down-first-child-beginning
-                    cpo-smartparens--down-sexp
-                    cpo-smartparens-up-parent-beginning
-                    "Move down to the beginning of the contained smartparens sexp.")
+                               cpo-smartparens--down-sexp
+                               cpo-smartparens-up-parent-beginning
+                               "Move down to the beginning of the contained smartparens sexp.")
 (defun cpo-smartparens--down-last-sexp-end ()
   (and (cpo-tree-walk--motion-moved 'cpo-smartparens--down-sexp)
        (sp-end-of-sexp)))
@@ -370,14 +370,14 @@ DIRECTION can be nil to detect, 'forward, or 'backward.
        (cpo-smartparens-backward-sibling-beginning)))
 ;;;###autoload (autoload 'cpo-smartparens-down-last-child-end "cpo-smartparens.el" "" t)
 (cpo-smartparens--command-wrap cpo-smartparens-down-last-child-end
-                    cpo-smartparens--down-last-sexp-end
-                    cpo-smartparens-up-parent-beginning
-                    "Move down to the end of the contained smartparens sexp.")
+                               cpo-smartparens--down-last-sexp-end
+                               cpo-smartparens-up-parent-beginning
+                               "Move down to the end of the contained smartparens sexp.")
 ;;;###autoload (autoload 'cpo-smartparens-down-last-child-beginning "cpo-smartparens.el" "" t)
 (cpo-smartparens--command-wrap cpo-smartparens-down-last-child-beginning
-                    cpo-smartparens--down-last-sexp-beginning
-                    cpo-smartparens-up-parent-beginning
-                    "Move down to the end of the contained smartparens sexp.")
+                               cpo-smartparens--down-last-sexp-beginning
+                               cpo-smartparens-up-parent-beginning
+                               "Move down to the end of the contained smartparens sexp.")
 
 
 (defun cpo-smartparens-move-to-other-end-of-sexp ()
@@ -437,9 +437,13 @@ Specifically it moves inside the parens."
  cpo-smartparens-backward-barf
  'sp-backward-barf-sexp)
 ;;;###autoload (autoload 'cpo-smartparens-splice "cpo-smartparens.el" "" t)
-(cpo-smartparens--def-action-with-adjusted-bounds
- cpo-smartparens-splice
- 'sp-splice-sexp)
+(defun cpo-smartparens-splice (&optional interactive-arg)
+  "Like `sp-splice-sexp', but if at an open or close delimiter, move inside first so the correct sexp is spliced."
+  (interactive "p")
+  (when (or (cpo-smartparens--at-open-delimiter-p)
+            (cpo-smartparens--at-close-delimiter-p))
+    (cpo-smartparens--down-sexp t))
+  (sp-splice-sexp interactive-arg))
 
 ;;;###autoload (autoload 'cpo-smartparens-kill-sexp "cpo-smartparens.el" "" t)
 (defun cpo-smartparens-kill-sexp (&optional arg)
@@ -460,10 +464,20 @@ Specifically it moves inside the parens."
   "Join the delimited sexp at point with the one after it (forward), if they have the same delimiter type."
   (interactive "p")
   (let ((count (or count 1)))
-    (let ((bounds (cpo-smartparens--bounds-of-delimited-sexp-at-point)))
+    (let* ((fwd (<= 0 count))
+           (bounds (cpo-smartparens--bounds-of-delimited-sexp-at-point)))
       (when bounds
-        (goto-char (if (<= 0 count) (cdr bounds) (car bounds)))
-        (sp-join-sexp count)))))
+        (let ((target-pos (if fwd (cdr bounds) (car bounds))))
+          ;; Only join if there is a sibling sexp in the target direction
+          (when (save-mark-and-excursion
+                  (goto-char target-pos)
+                  (let ((thing (sp-get-thing (not fwd))))
+                    (and thing
+                         (if fwd
+                             (<= target-pos (plist-get thing :beg))
+                           (>= target-pos (plist-get thing :end))))))
+            (goto-char target-pos)
+            (sp-join-sexp count)))))))
 ;;;###autoload (autoload 'cpo-smartparens-join-sexp-backward "cpo-smartparens.el" "" t)
 (defun cpo-smartparens-join-sexp-backward (&optional count)
   "Join the delimited sexp at point with the one before it (backward), if they have the same delimiter type."

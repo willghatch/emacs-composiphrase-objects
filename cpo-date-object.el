@@ -9,7 +9,7 @@
 (defun cpo-text-object-stuff--forward-date-beginning ()
   (let ((start-point (point))
         (end-point nil)
-        (regexp "\\b[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}\\b"))
+        (regexp "\\b[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}"))
     (save-mark-and-excursion
       (let ((success (re-search-forward regexp nil t)))
         (when (and success (equal start-point (match-beginning 0)))
@@ -20,7 +20,7 @@
     (when end-point (goto-char end-point))))
 
 (defun cpo-text-object-stuff--backward-date-beginning ()
-  (let* ((regexp "\\b[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}\\b")
+  (let* ((regexp "\\b[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}")
          (success (re-search-backward regexp nil t)))
     (when success
       (goto-char (match-beginning 0)))))
@@ -128,12 +128,19 @@ If COUNT is negative, move backward."
 
 (defun cpo-text-object-stuff--date-bounds-at-point ()
   "Get bounds of YYYY-MM-DD date at point."
-  (let ((regexp "\\b[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}\\b"))
+  (let ((regexp "\\b[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}"))
     (save-excursion
-      (when (or (looking-at regexp)
-                (and (re-search-backward "\\b" nil t)
-                     (looking-at regexp)))
-        (cons (match-beginning 0) (match-end 0))))))
+      (let ((orig (point))
+            (result nil))
+        (when (looking-at regexp)
+          (setq result (cons (match-beginning 0) (match-end 0))))
+        (let ((limit (max (- orig 10) (point-min))))
+          (while (and (not result) (> (point) limit))
+            (backward-char 1)
+            (when (and (looking-at regexp)
+                       (<= orig (match-end 0)))
+              (setq result (cons (match-beginning 0) (match-end 0))))))
+        result))))
 
 ;; Date-time format: YYYY-MM-DD<sep>HH:MM or YYYY-MM-DD<sep>HH:MM:SS
 ;; where <sep> can be any character
@@ -262,10 +269,17 @@ If COUNT is negative, move backward."
   "Get bounds of YYYY-MM-DD<sep>HH:MM[:SS] date-time at point."
   (let ((regexp "\\b[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}[^0-9][0-9]\\{2\\}:[0-9]\\{2\\}\\(:[0-9]\\{2\\}\\)?\\b"))
     (save-excursion
-      (when (or (looking-at regexp)
-                (and (re-search-backward "\\b" nil t)
-                     (looking-at regexp)))
-        (cons (match-beginning 0) (match-end 0))))))
+      (let ((orig (point))
+            (result nil))
+        (when (looking-at regexp)
+          (setq result (cons (match-beginning 0) (match-end 0))))
+        (let ((limit (max (- orig 19) (point-min))))
+          (while (and (not result) (> (point) limit))
+            (backward-char 1)
+            (when (and (looking-at regexp)
+                       (<= orig (match-end 0)))
+              (setq result (cons (match-beginning 0) (match-end 0))))))
+        result))))
 
 (with-eval-after-load 'repeatable-motion
   (repeatable-motion-define-pair 'cpo-forward-date-beginning 'cpo-backward-date-beginning)

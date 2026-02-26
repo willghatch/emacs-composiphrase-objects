@@ -202,11 +202,12 @@ Docstring \"<p>here\"
    (smartparens-mode 1)
    (sp-local-pair 'emacs-lisp-mode "\"" "\"")))
 
-;; Point inside a bracket sexp -- join-forward moves to end of sexp.
+;; Point inside a bracket sexp with no forward sibling -- join-forward
+;; should be a no-op (no sibling to join with).
 (carettest-tesmut-test
  test-smartparens-modifications-cpo-smartparens-join-sexp-forward__bracket-end
  :before "[with <p>squares {braces}]"
- :after "[with squares {braces}]<p>"
+ :after "[with <p>squares {braces}]"
  :function
  'cpo-smartparens-join-sexp-forward
  :transient-mark-mode

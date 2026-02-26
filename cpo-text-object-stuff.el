@@ -102,6 +102,13 @@
           ;; I would use beginning/end-of-thing, but forward-thing is more robust due to nesting or adjacent things.
           ;;(if fwd-beg-p (forward-thing thing -1) (forward-thing thing 1))
           )
+        ;; Guard: forward-beginning must not move backward, and
+        ;; backward-end must not move forward.  This can happen when
+        ;; there is no valid target in the specified direction.
+        (when (if fwd-beg-p
+                  (< (point) orig-point)
+                (> (point) orig-point))
+          (goto-char orig-point))
         ))))
 (defun cpo-text-object-stuff--forward-thing-beginning (strict thing &optional count)
   (cpo-text-object-stuff--fwd-beg_or_bwd-end_thing strict thing count t))

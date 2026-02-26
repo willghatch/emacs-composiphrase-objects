@@ -105,10 +105,11 @@
  :marks
  ("<m0>" "<m1>"))
 
-;; Inside last date: no next date, stays in place.
+;; Inside last date: should move to end of current date even when no
+;; next date exists, consistent with forward-date-end from middle.
 (carettest-tesmo-test
  test-date-movements-cpo-forward-date-end__at-last
- "first 2021-03-05 here\nsecond 2023-01-1<p1><p0>5 end"
+ "first 2021-03-05 here\nsecond 2023-01-1<p0>5<p1> end"
  'cpo-forward-date-end
  :transient-mark-mode
  nil

@@ -138,8 +138,10 @@ Second line here.
 
 (carettest-tesmo-test
  test-line-movements-cpo-backward-line-end__early-in-line
- "Fir<p0>st line here.
-<p1>Second line here.
+ ;; No previous line end to go to, so backward-line-end should be a
+ ;; no-op rather than moving forward.
+ "Fir<p0><p1>st line here.
+Second line here.
 Third line here.
 "
  'cpo-backward-line-end
