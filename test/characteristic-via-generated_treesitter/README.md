@@ -1,0 +1,1 @@
+../characteristic-via-generated/README.md

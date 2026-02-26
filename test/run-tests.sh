@@ -11,12 +11,13 @@ Usage: $0 [OPTIONS]
 Run the composiphrase-objects test suite.
 
 Options:
-  --core       Run the core unit tests.
-  --generated  Run the generated tests.
-  --irta       Run the IRTA found tests.
-  --cvg        Run the characteristic-via-generated tests.
-  --all        Run all tests (--core + --generated + --irta + --cvg).
-  --help       Show this message and exit.
+  --core             Run the core unit tests.
+  --generated        Run the generated tests.
+  --irta             Run the IRTA found tests.
+  --cvg              Run the characteristic-via-generated tests.
+  --cvg-treesitter   Run the treesitter characteristic tests (installs grammars first).
+  --all              Run all tests (--core + --generated + --irta + --cvg + --cvg-treesitter).
+  --help             Show this message and exit.
 EOF
 }
 
@@ -29,6 +30,7 @@ RUN_CORE=false
 RUN_GENERATED=false
 RUN_IRTA=false
 RUN_CVG=false
+RUN_CVG_TREESITTER=false
 
 for arg in "$@"; do
     case "$arg" in
@@ -48,11 +50,15 @@ for arg in "$@"; do
         --cvg)
             RUN_CVG=true
             ;;
+        --cvg-treesitter)
+            RUN_CVG_TREESITTER=true
+            ;;
         --all)
             RUN_CORE=true
             RUN_GENERATED=true
             RUN_IRTA=true
             RUN_CVG=true
+            RUN_CVG_TREESITTER=true
             ;;
         *)
             echo "Unknown option: $arg" >&2
@@ -148,4 +154,15 @@ if $RUN_IRTA; then
     fi
 fi
 
-emacs -batch "${TEST_ARGS[@]}" -f ert-run-tests-batch-and-exit
+if $RUN_CVG_TREESITTER; then
+    "$SCRIPT_DIR/install-treesitter-grammars.sh"
+    if [ -d "$SCRIPT_DIR/characteristic-via-generated_treesitter" ]; then
+        shopt -s nullglob
+        for f in "$SCRIPT_DIR/characteristic-via-generated_treesitter/"*.el; do
+            TEST_ARGS+=(-l "$f")
+        done
+        shopt -u nullglob
+    fi
+fi
+
+emacs -batch --init-directory "$DEPS_DIR" "${TEST_ARGS[@]}" -f ert-run-tests-batch-and-exit
