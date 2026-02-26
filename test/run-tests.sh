@@ -13,7 +13,8 @@ Run the composiphrase-objects test suite.
 Options:
   --core       Run the core unit tests.
   --generated  Run the generated tests.
-  --all        Run all tests (--core + --generated).
+  --irta       Run the IRTA found tests.
+  --all        Run all tests (--core + --generated + --irta).
   --help       Show this message and exit.
 EOF
 }
@@ -25,6 +26,7 @@ fi
 
 RUN_CORE=false
 RUN_GENERATED=false
+RUN_IRTA=false
 
 for arg in "$@"; do
     case "$arg" in
@@ -38,9 +40,13 @@ for arg in "$@"; do
         --generated)
             RUN_GENERATED=true
             ;;
+        --irta)
+            RUN_IRTA=true
+            ;;
         --all)
             RUN_CORE=true
             RUN_GENERATED=true
+            RUN_IRTA=true
             ;;
         *)
             echo "Unknown option: $arg" >&2
@@ -110,6 +116,16 @@ if $RUN_GENERATED; then
     if [ -d "$SCRIPT_DIR/generated-tests" ]; then
         shopt -s nullglob
         for f in "$SCRIPT_DIR/generated-tests/"*.el; do
+            TEST_ARGS+=(-l "$f")
+        done
+        shopt -u nullglob
+    fi
+fi
+
+if $RUN_IRTA; then
+    if [ -d "$SCRIPT_DIR/irta-found-tests" ]; then
+        shopt -s nullglob
+        for f in "$SCRIPT_DIR/irta-found-tests/"*.el; do
             TEST_ARGS+=(-l "$f")
         done
         shopt -u nullglob
