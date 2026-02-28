@@ -543,6 +543,49 @@ siblings to slurp."
                   (not (string-equal prev-state cur-state))))
       (setq count (+ 1 count)))))
 
+(defun cpo-indent-tree-raise ()
+  "Replace the parent indent-tree node with the current node.
+The child node is promoted to take the parent's place, discarding
+the parent and any siblings.  Indentation is adjusted so the child
+takes the parent's indentation level."
+  (interactive)
+  (let* ((child-bounds (cpo-indent-tree-bounds (point)))
+         (parent-bounds (and child-bounds
+                             (save-mark-and-excursion
+                               (goto-char (car child-bounds))
+                               (and (cpo-tree-walk--motion-moved
+                                     (lambda () (cpo-indent-tree-up-to-parent 1)))
+                                    (cpo-indent-tree-bounds (point)))))))
+    (when (and child-bounds parent-bounds
+               (cpo-tree-walk--region-strictly-less child-bounds parent-bounds))
+      (let* ((parent-indent (save-mark-and-excursion
+                              (goto-char (car parent-bounds))
+                              (current-indentation)))
+             (child-indent (save-mark-and-excursion
+                             (goto-char (car child-bounds))
+                             (current-indentation)))
+             (indent-diff (- child-indent parent-indent))
+             (child-text (buffer-substring-no-properties (car child-bounds)
+                                                         (cdr child-bounds))))
+        ;; Adjust indentation: reduce each line's indentation by indent-diff
+        (let ((adjusted-lines
+               (mapconcat
+                (lambda (line)
+                  (if (string-match "^\\( +\\)" line)
+                      (let* ((existing-indent (length (match-string 1 line)))
+                             (new-indent (max 0 (- existing-indent indent-diff))))
+                        (concat (make-string new-indent ?\s)
+                                (substring line existing-indent)))
+                    line))
+                (split-string child-text "\n")
+                "\n")))
+          (atomic-change-group
+            (delete-region (car parent-bounds) (cdr parent-bounds))
+            (goto-char (car parent-bounds))
+            (insert adjusted-lines))
+          (goto-char (car parent-bounds))
+          (back-to-indentation))))))
+
 (with-eval-after-load 'repeatable-motion
   (repeatable-motion-define-pair 'cpo-indent-tree-backward-full-sibling
                                  'cpo-indent-tree-forward-full-sibling)

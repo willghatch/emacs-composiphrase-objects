@@ -4,6 +4,7 @@
 (require 'carettest-tesmut)
 (require 'ert)
 (require 'carettest-tesmo)
+(require 'carettest-tesmut)
 
 ;; TODO - actually write a bunch of tests
 
@@ -495,3 +496,41 @@ root
   shallow2
 "
                       (lambda () (should (= 0 (cpo-indent-tree-forward-full-or-half-sibling 3)))))
+
+(carettest-tesmut-test
+ test-indent-tree-raise-basic
+ :before
+ "
+root
+  child1
+  <p>child2
+    grandchild1
+      ggc1
+    grandchild2
+        ggc2 at different depth
+  child3
+"
+ :after
+ "
+<p>child2
+  grandchild1
+    ggc1
+  grandchild2
+      ggc2 at different depth
+"
+ :function 'cpo-indent-tree-raise)
+
+(carettest-tesmut-test
+ test-indent-tree-raise-leaf
+ :before
+ "
+root
+  child1
+  <p>child2
+  child3
+"
+ :after
+ "
+<p>child2
+"
+ :function 'cpo-indent-tree-raise)
