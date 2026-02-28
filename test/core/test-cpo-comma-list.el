@@ -325,6 +325,58 @@
                        "(<p>, alpha, beta, gamma)"
                        'cpo-comma-list-open-backward)
 
+;;; Test: transpose with active region
+
+;; Transpose a region of two elements forward -- the region covers "alpha, beta"
+;; and gets swapped with "gamma".
+(carettest-tesmut-test cpo-comma-list-test-transpose-region-forward
+                       :before "(<p>alpha, beta<m>, gamma)"
+                       :after "(gamma, <p>alpha, beta<m>)"
+                       :function 'cpo-comma-list-transpose-forward)
+
+;; Transpose a region of two elements backward -- the region covers "beta, gamma"
+;; and gets swapped with "alpha".
+(carettest-tesmut-test cpo-comma-list-test-transpose-region-backward
+                       :before "(alpha, <p>beta, gamma<m>)"
+                       :after "(<p>beta, gamma<m>, alpha)"
+                       :function 'cpo-comma-list-transpose-backward)
+
+;; Transpose region forward with unequal-length elements.
+(carettest-tesmut-test cpo-comma-list-test-transpose-region-forward-unequal
+                       :before "(<p>aa, bb<m>, cccc)"
+                       :after "(cccc, <p>aa, bb<m>)"
+                       :function 'cpo-comma-list-transpose-forward)
+
+;; Transpose region backward with unequal-length elements.
+(carettest-tesmut-test cpo-comma-list-test-transpose-region-backward-unequal
+                       :before "(aaaa, <p>bb, cc<m>)"
+                       :after "(<p>bb, cc<m>, aaaa)"
+                       :function 'cpo-comma-list-transpose-backward)
+
+;; Transpose a single-element region forward (should behave like normal transpose).
+(carettest-tesmut-test cpo-comma-list-test-transpose-region-forward-single
+                       :before "(<p>alpha<m>, beta, gamma)"
+                       :after "(beta, <p>alpha<m>, gamma)"
+                       :function 'cpo-comma-list-transpose-forward)
+
+;; Transpose region forward in a four-element list, moving middle two.
+(carettest-tesmut-test cpo-comma-list-test-transpose-region-forward-four-elems
+                       :before "(a, <p>b, c<m>, d)"
+                       :after "(a, d, <p>b, c<m>)"
+                       :function 'cpo-comma-list-transpose-forward)
+
+;; Transpose region backward in a four-element list, moving middle two.
+(carettest-tesmut-test cpo-comma-list-test-transpose-region-backward-four-elems
+                       :before "(a, <p>b, c<m>, d)"
+                       :after "(<p>b, c<m>, a, d)"
+                       :function 'cpo-comma-list-transpose-backward)
+
+;; Repeated region transpose forward -- drag a region across multiple positions.
+(carettest-tesmut-test cpo-comma-list-test-transpose-region-forward-repeated
+                       :before "(<p>a, b<m>, c, d)"
+                       :after "(c, d, <p>a, b<m>)"
+                       :function (lambda () (cpo-comma-list-transpose-forward 2)))
+
 ;; TODO - open in an empty list () is degenerate and broken, I'll fix it later, maybe, if I get back to it.
 ;; TODO - maybe I should add up/down tree motions to comma lists?  IE ignore other syntactical elements to be language-generic, but if a list is inside delimiters, go out a level.
 ;; TODO - this is broken for straight-quote strings that have commas.  But parsing straight-quote strings is language-specific and more difficult than I want to try in this.  At that point hopefully treesitter or something is helpful.  The point of this comma list is to have something generic that works OK much of the time, not to be bulletproof.

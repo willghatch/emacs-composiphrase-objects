@@ -540,20 +540,84 @@ Returns non-nil on success."
             (undo-boundary)
             t))))))
 
+(defun cpo-comma-list--transpose-region-once (direction)
+  "Transpose the active region with an adjacent comma-list element.
+DIRECTION is 1 for forward, -1 for backward.
+Assumes the region is aligned on comma-list element boundaries.
+Re-activates the region around the moved content.
+Returns non-nil on success."
+  (let* ((reg-beg (region-beginning))
+         (reg-end (region-end))
+         ;; Find the neighbor element.  For forward, look at the element
+         ;; at/after the end of the region.  For backward, look at the
+         ;; element at/before the start of the region.
+         (neighbor-info (save-excursion
+                          (if (> direction 0)
+                              (progn
+                                (goto-char reg-end)
+                                ;; Skip comma and whitespace to get into the
+                                ;; next element.
+                                (skip-chars-forward ", \t\n")
+                                (cpo-comma-list--inner-bounds))
+                            (progn
+                              (goto-char reg-beg)
+                              ;; Skip backward past comma and whitespace to
+                              ;; get into the previous element.
+                              (skip-chars-backward ", \t\n")
+                              (cpo-comma-list--inner-bounds))))))
+    (when neighbor-info
+      (let* ((neighbor-trimmed neighbor-info)
+             (region-bounds (cons reg-beg reg-end))
+             ;; Determine earlier/later ordering.
+             (region-is-earlier (< reg-beg (car neighbor-trimmed)))
+             (earlier (if region-is-earlier region-bounds neighbor-trimmed))
+             (later (if region-is-earlier neighbor-trimmed region-bounds))
+             (s-earlier (buffer-substring-no-properties (car earlier) (cdr earlier)))
+             (s-later (buffer-substring-no-properties (car later) (cdr later)))
+             (region-text-len (- reg-end reg-beg)))
+        ;; Only proceed if the neighbor doesn't overlap the region.
+        (when (or (<= (cdr earlier) (car later)))
+          ;; Perform the swap.
+          (atomic-change-group
+            (delete-region (car later) (cdr later))
+            (goto-char (car later))
+            (insert s-earlier)
+            (delete-region (car earlier) (cdr earlier))
+            (goto-char (car earlier))
+            (insert s-later))
+          ;; Position point and mark around the region text in its new location.
+          (let* ((len-diff (- (length s-later) (length s-earlier))))
+            (if region-is-earlier
+                ;; Region moved from earlier to later position.
+                (goto-char (+ (car later) len-diff))
+              ;; Region moved from later to earlier position.
+              (goto-char (car earlier))))
+          (set-mark (+ (point) region-text-len))
+          (activate-mark)
+          (setq deactivate-mark nil)
+          (undo-boundary)
+          t)))))
+
 ;;;###autoload
 (defun cpo-comma-list-transpose-forward (&optional count)
-  "Transpose the current comma-list element forward COUNT times."
+  "Transpose the current comma-list element forward COUNT times.
+When region is active, transpose the region as a block, assuming
+it is aligned on comma-list element boundaries."
   (interactive "p")
   (setq count (or count 1))
   (let ((dir (if (> count 0) 1 -1))
         (n (abs count)))
     (with-undo-amalgamate
       (dotimes (_i n)
-        (cpo-comma-list--transpose-once dir)))))
+        (if (region-active-p)
+            (cpo-comma-list--transpose-region-once dir)
+          (cpo-comma-list--transpose-once dir))))))
 
 ;;;###autoload
 (defun cpo-comma-list-transpose-backward (&optional count)
-  "Transpose the current comma-list element backward COUNT times."
+  "Transpose the current comma-list element backward COUNT times.
+When region is active, transpose the region as a block, assuming
+it is aligned on comma-list element boundaries."
   (interactive "p")
   (cpo-comma-list-transpose-forward (- (or count 1))))
 
