@@ -121,16 +121,11 @@ done
 shopt -u nullglob
 
 if $RUN_CORE; then
-    TEST_ARGS+=(
-        -l "$SCRIPT_DIR/test-cpo-indent-tree.el"
-        -l "$SCRIPT_DIR/test-cpo-outline.el"
-        -l "$SCRIPT_DIR/test-cpo-smartparens.el"
-        -l "$SCRIPT_DIR/test-cpo-text-object-stuff.el"
-        -l "$SCRIPT_DIR/test-cpo-misc.el"
-        -l "$SCRIPT_DIR/test-cpo-comma-list.el"
-        -l "$SCRIPT_DIR/test-cpo-outline-heading.el"
-        -l "$SCRIPT_DIR/test-cpo-org-structure-block.el"
-    )
+    shopt -s nullglob
+    for f in "$SCRIPT_DIR/core/"*.el; do
+        TEST_ARGS+=(-l "$f")
+    done
+    shopt -u nullglob
 fi
 
 if $RUN_SLOW; then
