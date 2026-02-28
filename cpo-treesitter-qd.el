@@ -410,6 +410,31 @@ But this is a heuristic thing, so we'll see if it works well."
  :use-children-bounds 'cpo-treesitter-qd-bounds-of-thing-at-point/children-region
  )
 
+;;;###autoload (autoload 'cpo-treesitter-qd-raise "cpo-treesitter-qd.el" "" t)
+(defun cpo-treesitter-qd-raise ()
+  "Replace the parent treesitter node with the current node at point.
+The child node is promoted to take the parent's place, discarding
+the parent and any siblings."
+  (interactive)
+  (let* ((child-node (cpo-treesitter-qd-node-at-point))
+         (parent-node (and child-node
+                           (cpo-treesitter-qd--effective-parent child-node))))
+    (when (and child-node parent-node
+               (not (equal (treesit-node-start child-node)
+                           (treesit-node-start parent-node)))
+               (not (equal (treesit-node-end child-node)
+                           (treesit-node-end parent-node))))
+      (let* ((child-start (treesit-node-start child-node))
+             (child-end (treesit-node-end child-node))
+             (parent-start (treesit-node-start parent-node))
+             (parent-end (treesit-node-end parent-node))
+             (child-text (buffer-substring-no-properties child-start child-end)))
+        (atomic-change-group
+          (delete-region parent-start parent-end)
+          (goto-char parent-start)
+          (insert child-text))
+        (goto-char parent-start)))))
+
 ;;;###autoload (autoload 'rmo/cpo-treesitter-qd-forward-inorder-traversal "cpo-treesitter-qd.el" "" t)
 ;;;###autoload (autoload 'rmo/cpo-treesitter-qd-backward-inorder-traversal "cpo-treesitter-qd.el" "" t)
 ;;;###autoload (autoload 'rmo/cpo-treesitter-qd-forward-sibling-anchor-point "cpo-treesitter-qd.el" "" t)

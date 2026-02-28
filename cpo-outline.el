@@ -272,6 +272,48 @@ There can be arbitrarily many half siblings, since the depth difference between 
                                                        (point))
  )
 
+(defun cpo-outline-raise ()
+  "Replace the parent heading's subtree with the current heading's subtree.
+The child heading is promoted to take the parent's place, discarding
+the parent and any siblings.  The heading level is adjusted so the
+child takes the parent's heading level."
+  (interactive)
+  (require 'org)
+  (let* ((child-bounds (cpo-outline-tree-bounds (point)))
+         (parent-bounds (and child-bounds
+                             (save-mark-and-excursion
+                               (goto-char (car child-bounds))
+                               (and (cpo-tree-walk--motion-moved
+                                     (lambda () (ignore-errors (outline-up-heading 1))))
+                                    (cpo-outline-tree-bounds (point)))))))
+    (when (and child-bounds parent-bounds
+               (cpo-tree-walk--region-strictly-less child-bounds parent-bounds))
+      (let* ((parent-level (save-mark-and-excursion
+                             (goto-char (car parent-bounds))
+                             (org-current-level)))
+             (child-level (save-mark-and-excursion
+                            (goto-char (car child-bounds))
+                            (org-current-level)))
+             (level-diff (- child-level parent-level))
+             (child-text (buffer-substring-no-properties (car child-bounds)
+                                                          (cdr child-bounds))))
+        ;; Adjust heading levels: reduce each heading's level by level-diff
+        (let ((adjusted-text
+               (with-temp-buffer
+                 (insert child-text)
+                 (goto-char (point-min))
+                 (while (re-search-forward "^\\(\\*+\\)" nil t)
+                   (let* ((stars (match-string 1))
+                          (new-level (max 1 (- (length stars) level-diff)))
+                          (new-stars (make-string new-level ?*)))
+                     (replace-match new-stars nil nil nil 1)))
+                 (buffer-string))))
+          (atomic-change-group
+            (delete-region (car parent-bounds) (cdr parent-bounds))
+            (goto-char (car parent-bounds))
+            (insert adjusted-text))
+          (goto-char (car parent-bounds)))))))
+
 (with-eval-after-load 'repeatable-motion
   (repeatable-motion-define-pair 'outline-forward-same-level 'outline-backward-same-level)
   (repeatable-motion-define-pair 'cpo-outline-forward-full-sibling 'cpo-outline-backward-full-sibling)

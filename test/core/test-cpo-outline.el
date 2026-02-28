@@ -4,6 +4,7 @@
 (require 'org)
 (require 'ert)
 (require 'carettest-tesmo)
+(require 'carettest-tesmut)
 
 
 ;;; Test data with half siblings for outline trees.
@@ -338,4 +339,99 @@
 ** mid2
 "
  (lambda () (should (= 2 (cpo-outline-forward-full-sibling 3))))
+ :setup (org-mode))
+
+
+;;; Raise tests
+
+(carettest-tesmut-test
+ test-outline-raise-basic
+ :before
+ "* root
+** child1
+<p>** child2
+*** grandchild1
+*** grandchild2
+** child3
+"
+ :after
+ "<p>* child2
+** grandchild1
+** grandchild2
+"
+ :function 'cpo-outline-raise
+ :setup (org-mode))
+
+(carettest-tesmut-test
+ test-outline-raise-leaf
+ :before
+ "* root
+** child1
+<p>** child2
+** child3
+"
+ :after
+ "<p>* child2
+"
+ :function 'cpo-outline-raise
+ :setup (org-mode))
+
+(carettest-tesmut-test
+ test-outline-raise-deeply-nested
+ :before
+ "* root
+** parent
+*** child1
+<p>*** child2
+**** deep1
+*** child3
+** sibling
+"
+ :after
+ "* root
+<p>** child2
+*** deep1
+** sibling
+"
+ :function 'cpo-outline-raise
+ :setup (org-mode))
+
+(carettest-tesmut-test
+ test-outline-raise-with-body
+ :before
+ "* root
+Some root body text.
+** child1
+Child1 body.
+<p>** child2
+Child2 body.
+*** grandchild
+Grandchild body.
+** child3
+"
+ :after
+ "<p>* child2
+Child2 body.
+** grandchild
+Grandchild body.
+"
+ :function 'cpo-outline-raise
+ :setup (org-mode))
+
+(carettest-tesmut-test
+ test-outline-raise-preserves-subtree-structure
+ :before
+ "* root
+<p>** child
+*** gc1
+**** ggc1
+*** gc2
+"
+ :after
+ "<p>* child
+** gc1
+*** ggc1
+** gc2
+"
+ :function 'cpo-outline-raise
  :setup (org-mode))
