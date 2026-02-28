@@ -3,6 +3,7 @@
 (require 'cpo-smartparens)
 (require 'carettest-tesmut)
 (require 'ert)
+(require 'carettest-tesmut)
 
 ;; TODO - actually write a bunch of tests
 ;; TODO - maybe use smartparens testing infrastructure, it has a lot of convenience definitions.  They are probably mostly internal, but they are probably sufficiently stable.
@@ -140,4 +141,88 @@
  :function 'cpo-smartparens-backward-slurp-all
  :setup (progn (emacs-lisp-mode)
                (smartparens-mode 1)
+               (setq-local sp-pair-list '(("(" . ")")))))
+
+(carettest-tesmut-test
+ test-cpo-smartparens-raise_symbol
+ :before "(a (b <p>c) d)"
+ :after "(a <p>c d)"
+ :function 'cpo-smartparens-raise
+ :setup (progn (setq-local sp-pair-list '(("(" . ")")))
+               (emacs-lisp-mode)))
+
+(carettest-tesmut-test
+ test-cpo-smartparens-raise_symbol-2
+ :before "(a (<p>b c) d)"
+ :after "(a <p>b d)"
+ :function 'cpo-smartparens-raise
+ :setup (progn (setq-local sp-pair-list '(("(" . ")")))
+               (emacs-lisp-mode)))
+
+(carettest-tesmut-test
+ test-cpo-smartparens-raise_delimited
+ :before "(a (b <p>(c d)) e)"
+ :after "(a <p>(c d) e)"
+ :function 'cpo-smartparens-raise
+ :setup (progn (setq-local sp-pair-list '(("(" . ")")))
+               (emacs-lisp-mode)))
+
+(carettest-tesmut-test
+ test-cpo-smartparens-raise_delimited_at-end
+ :before "(a (b (c d)<p>) e)"
+ :after "(a (c d)<p> e)"
+ :function 'cpo-smartparens-raise
+ :setup (progn (setq-local sp-pair-list '(("(" . ")")))
+               (emacs-lisp-mode)))
+
+(carettest-tesmut-test
+ test-cpo-smartparens-raise_delimited_at-end-2
+ :before "(a (b (c d)<p> more after the target) e)"
+ :after "(a (c d)<p> e)"
+ :function 'cpo-smartparens-raise
+ :setup (progn (setq-local sp-pair-list '(("(" . ")")))
+               (emacs-lisp-mode)))
+
+;; When sandwiches between two s-expressions (IE with no space), prefer choosing the one after point, like we do for all cpo-smartparens operations.
+(carettest-tesmut-test
+ test-cpo-smartparens-raise_sandwich-1
+ :before "(a (b (c d)<p>(e f)) g)"
+ :after "(a <p>(e f) g)"
+ :function 'cpo-smartparens-raise
+ :setup (progn (setq-local sp-pair-list '(("(" . ")")))
+               (emacs-lisp-mode)))
+
+(carettest-tesmut-test
+ test-cpo-smartparens-raise_sandwich-2
+ :before "(a (b (c d)<p>after) g)"
+ :after "(a <p>after g)"
+ :function 'cpo-smartparens-raise
+ :setup (progn (setq-local sp-pair-list '(("(" . ")")))
+               (emacs-lisp-mode)))
+
+(carettest-tesmut-test
+ test-cpo-smartparens-raise_sandwich-3
+ :before "(a (b before<p>(e f)) g)"
+ :after "(a <p>(e f) g)"
+ :function 'cpo-smartparens-raise
+ :setup (progn (setq-local sp-pair-list '(("(" . ")")))
+               (emacs-lisp-mode)))
+
+(carettest-tesmut-test
+ test-cpo-smartparens-raise-to-top
+ :before "(a <p>(b c) d) (e)"
+ :after "<p>(b c) (e)"
+ :function 'cpo-smartparens-raise
+ :setup (progn (setq-local sp-pair-list '(("(" . ")")))
+               (emacs-lisp-mode)))
+
+;; Test that up-parent-beginning from near a close delimiter position goes
+;; to the actual parent, not to the beginning of a child sexp.
+;; IE this was an issue with selecting the current symex to target, not adhering to the selection rules (prefer at over in).
+(carettest-tesmut-test
+ test-cpo-smartparens-up-parent-beginning_at-close-delimiter
+ :before "(a (b c)<p> d)"
+ :after "<p>(a (b c) d)"
+ :function 'cpo-smartparens-up-parent-beginning
+ :setup (progn (emacs-lisp-mode)
                (setq-local sp-pair-list '(("(" . ")")))))
