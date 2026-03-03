@@ -511,9 +511,10 @@
 ;;; cpo-expand-region-to-cpo-date
 
 ;; Point inside date, no initial region: expands to cover the full date.
+;; Default position puts point at beginning of region.
 (carettest-tesmo-test
  test-date-movements-cpo-expand-region-to-cpo-date__inside-date
- "text <m1>2023-01-<p0>15<p1> more text"
+ "text <p1>2023-01-<p0>15<m1> more text"
  'cpo-expand-region-to-cpo-date
  :transient-mark-mode t
  :points ("<p0>" "<p1>")
@@ -522,7 +523,7 @@
 ;; Point just past end of date, no initial region: still expands to cover the full date.
 (carettest-tesmo-test
  test-date-movements-cpo-expand-region-to-cpo-date__point-after-end
- "text <m1>2023-01-15<p1><p0> more text"
+ "text <p1>2023-01-15<m1><p0> more text"
  'cpo-expand-region-to-cpo-date
  :transient-mark-mode t
  :points ("<p0>" "<p1>")
@@ -531,7 +532,7 @@
 ;; Both point and mark inside same date: expands to cover the full date.
 (carettest-tesmo-test
  test-date-movements-cpo-expand-region-to-cpo-date__mark-and-point-inside
- "text <m1>2023-<m0>01-<p0>15<p1> more text"
+ "text <p1>2023-<m0>01-<p0>15<m1> more text"
  'cpo-expand-region-to-cpo-date
  :transient-mark-mode t
  :points ("<p0>" "<p1>")
@@ -542,7 +543,7 @@
 ;; Point inside datetime, no initial region: expands to cover the full datetime.
 (carettest-tesmo-test
  test-date-movements-cpo-expand-region-to-cpo-datetime__inside-datetime
- "log <m1>2023-01-15T10:30:<p0>00<p1> here"
+ "log <p1>2023-01-15T10:30:<p0>00<m1> here"
  'cpo-expand-region-to-cpo-datetime
  :transient-mark-mode t
  :points ("<p0>" "<p1>")
@@ -551,7 +552,7 @@
 ;; Point just past end of datetime, no initial region: still expands to cover the full datetime.
 (carettest-tesmo-test
  test-date-movements-cpo-expand-region-to-cpo-datetime__point-after-end
- "log <m1>2023-01-15T10:30:00<p1><p0> here"
+ "log <p1>2023-01-15T10:30:00<m1><p0> here"
  'cpo-expand-region-to-cpo-datetime
  :transient-mark-mode t
  :points ("<p0>" "<p1>")
@@ -560,7 +561,7 @@
 ;; Both point and mark inside same datetime: expands to cover the full datetime.
 (carettest-tesmo-test
  test-date-movements-cpo-expand-region-to-cpo-datetime__mark-and-point-inside
- "log <m1>2023-01-15T<m0>10:30:<p0>00<p1> here"
+ "log <p1>2023-01-15T<m0>10:30:<p0>00<m1> here"
  'cpo-expand-region-to-cpo-datetime
  :transient-mark-mode t
  :points ("<p0>" "<p1>")

@@ -707,10 +707,12 @@ If at a delimiter (IE just before open or just after close), operates on the del
  )
 
 
-(defun cpo-smartparens--expand-region-until-predicate (expansion-func predicate &optional count)
+(cl-defun cpo-smartparens--expand-region-until-predicate (expansion-func predicate &optional count &key position)
   "Call EXPANSION-FUNC until PREDICATE is true.
 If the expansion func stops expanding the region before the predicate is ever true, return to the original region and return nil.
-If the predicate succeeds, leave the expanded region and return the new bounds."
+If the predicate succeeds, leave the expanded region and return the new bounds.
+POSITION controls where point ends up: nil or \\='beginning puts point
+at the beginning of the region, \\='end puts point at the end."
   (let ((orig-bounds (if (region-active-p) (cons (region-beginning) (region-end)) (cons (point) (point))))
         inner-result
         result)
@@ -725,17 +727,21 @@ If the predicate succeeds, leave the expanded region and return the new bounds."
         (setq result inner-result)
         (setq inner-result nil)))
     (if result
-        (progn
-          ;; Go to the new point/mark, but return the region canonicalized to (beg . end).
-          (goto-char (car result))
-          (set-mark (cdr result))
-          (if (<= (car result) (cdr result))
-              result
-            (cons (cdr result) (car result))))
+        (let ((beg (min (car result) (cdr result)))
+              (end (max (car result) (cdr result))))
+          (if (eq position 'end)
+              (progn
+                (goto-char end)
+                (set-mark beg))
+            (goto-char beg)
+            (set-mark end))
+          (cons beg end))
       nil)))
 
-(defun cpo-smartparens-expand-region-to-any-delimiter (&optional count)
-  "Like `cpo-smartparens-expand-region' but specifically expanding to a delimited region, not just something like a symbol."
+(cl-defun cpo-smartparens-expand-region-to-any-delimiter (&optional count &key position)
+  "Like `cpo-smartparens-expand-region' but specifically expanding to a delimited region, not just something like a symbol.
+POSITION controls where point ends up: nil or \\='beginning puts point
+at the beginning of the region, \\='end puts point at the end."
   (interactive)
   (cpo-smartparens--expand-region-until-predicate
    'cpo-smartparens-expand-region
@@ -743,23 +749,29 @@ If the predicate succeeds, leave the expanded region and return the new bounds."
                 (and (region-active-p)
                      (goto-char (if (region-active-p) (region-beginning) (point)))
                      (cpo-smartparens--at-open-delimiter-p))))
-   (or count 1)))
+   (or count 1)
+   :position position))
 
-(defun cpo-smartparens-expand-region-to-delimiter (delimiter &optional count)
+(cl-defun cpo-smartparens-expand-region-to-delimiter (delimiter &optional count &key position)
   "DELIMITER must be an opening delimiter used by smartparens.
-Expand region until hitting that specific delimiter."
+Expand region until hitting that specific delimiter.
+POSITION controls where point ends up: nil or \\='beginning puts point
+at the beginning of the region, \\='end puts point at the end."
   (cpo-smartparens--expand-region-until-predicate
    'cpo-smartparens-expand-region
    (lambda () (save-mark-and-excursion
                 (and (region-active-p)
                      (goto-char (region-beginning))
                      (looking-at (regexp-quote delimiter)))))
-   (or count 1)))
+   (or count 1)
+   :position position))
 
-(defun cpo-smartparens-expand-region-to-delimiter/children-region (delimiter &optional count)
+(cl-defun cpo-smartparens-expand-region-to-delimiter/children-region (delimiter &optional count &key position)
   "DELIMITER must be an opening delimiter used by smartparens.
 Expand region until hitting that specific delimiter.
-Except only expand to the inner area inside the parens."
+Except only expand to the inner area inside the parens.
+POSITION controls where point ends up: nil or \\='beginning puts point
+at the beginning of the region, \\='end puts point at the end."
   (cpo-smartparens--expand-region-until-predicate
    'cpo-smartparens-expand-region/children-region
    (lambda () (save-mark-and-excursion
@@ -768,7 +780,8 @@ Except only expand to the inner area inside the parens."
                      (< (length delimiter) (point))
                      (progn (backward-char (length delimiter))
                             (looking-at (regexp-quote delimiter))))))
-   (or count 1)))
+   (or count 1)
+   :position position))
 
 (defun cpo-smartparens--open-sibling-extra-lines (bounds)
   "Get the number of extra lines to add.

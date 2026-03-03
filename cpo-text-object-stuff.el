@@ -152,26 +152,36 @@ If no region is active, it will use (point . point)."
                 (t nil)))
       nil)))
 
-(defun cpo-text-object-stuff--set-region (bounds)
-  "Set the active region to BOUNDS.  BOUNDS must be a single pair."
-  (set-mark (car bounds))
-  (goto-char (cdr bounds)))
+(cl-defun cpo-text-object-stuff--set-region (bounds &key position)
+  "Set the active region to BOUNDS.  BOUNDS must be a single pair.
+POSITION controls where point ends up: nil or \\='beginning puts point
+at the beginning of the region (mark at end), \\='end puts point at the
+end (mark at beginning)."
+  (if (eq position 'end)
+      (progn
+        (set-mark (car bounds))
+        (goto-char (cdr bounds)))
+    (set-mark (cdr bounds))
+    (goto-char (car bounds))))
 
-(defun cpo-text-object-stuff--expand-region-to-thing (thing &optional sloppy-grow)
+(cl-defun cpo-text-object-stuff--expand-region-to-thing (thing &optional sloppy-grow &key position)
   (interactive)
   ;; TODO - handle trees and count?
   ;; TODO - do I want sloppy expansion?  I definitely do for lines, but I'm not yet certain about other things...  I should revisit this.
   (let ((new-bounds (cpo-text-object-stuff--expanded-region-to-bounds-of-thing-at-point t sloppy-grow thing)))
     (when new-bounds
-      (cpo-text-object-stuff--set-region new-bounds))))
+      (cpo-text-object-stuff--set-region new-bounds :position position))))
 
 
 (cl-defmacro cpo-text-object-stuff--def-expand-region-to-thing (thing)
   (let ((sym (intern (format "cpo-expand-region-to-%s" thing))))
     `(progn
-       (defun ,sym ()
+       (cl-defun ,sym (&key position)
+         "Expand region to the THING at point.
+POSITION controls where point ends up: nil or \\='beginning puts point
+at the beginning of the region, \\='end puts point at the end."
          (interactive)
-         (cpo-text-object-stuff--expand-region-to-thing ',thing t)))))
+         (cpo-text-object-stuff--expand-region-to-thing ',thing t :position position)))))
 
 ;;;;;;
 
@@ -529,19 +539,30 @@ IE going forward go to the end of the line (character before newline), going bac
   (repeatable-motion-define-pair 'cpo-next-line 'cpo-prev-line))
 
 
-(defun cpo-expand-region-to-fill-lines (&optional include-final-newline)
+(cl-defun cpo-expand-region-to-fill-lines (&optional include-final-newline &key position)
   "Expand the current region to include the full first and last line.
-If INCLUDE-FINAL-NEWLINE, expands to include the newline as well, which makes the function non-idempotent."
+If INCLUDE-FINAL-NEWLINE, expands to include the newline as well, which makes the function non-idempotent.
+POSITION controls where point ends up: nil or \\='beginning puts point
+at the beginning of the region (mark at end), \\='end puts point at the
+end (mark at beginning)."
   (when (not (region-active-p))
     (set-mark (point)))
-  (let ((point-first (< (point) (mark)))
-        (goto-end (if include-final-newline
-                      (lambda () (goto-char (line-end-position)) (when (not (eobp)) (forward-char 1)))
-                    (lambda () (goto-char (line-end-position))))))
-    (if point-first (goto-char (line-beginning-position)) (funcall goto-end))
-    (exchange-point-and-mark)
-    (if (not point-first) (goto-char (line-beginning-position)) (funcall goto-end))
-    (exchange-point-and-mark)))
+  (let* ((goto-end (if include-final-newline
+                       (lambda () (goto-char (line-end-position)) (when (not (eobp)) (forward-char 1)))
+                     (lambda () (goto-char (line-end-position))))))
+    ;; Expand: move the earlier bound to line-beginning, later bound to line-end.
+    (let ((beg (region-beginning))
+          (end (region-end)))
+      (goto-char beg)
+      (goto-char (line-beginning-position))
+      (let ((new-beg (point)))
+        (goto-char end)
+        (funcall goto-end)
+        (let ((new-end (point)))
+          ;; Set region with position controlling point placement.
+          (if (eq position 'end)
+              (progn (set-mark new-beg) (goto-char new-end))
+            (set-mark new-end) (goto-char new-beg)))))))
 
 (defun cpo-open-line-below ()
   (interactive)

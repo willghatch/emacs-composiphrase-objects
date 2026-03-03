@@ -372,5 +372,43 @@ content
  'cpo-org-structure-block-expand-region
  :setup (org-mode))
 
+;;; Position argument tests
+
+;; expand-region: default position puts point at beginning
+(carettest-tesmo-test
+ test-osb-expand-region__default-position
+ "Some text before
+<p1>#+begin_src emacs-lisp
+  (message<p0> \"hello\")
+#+end_src
+<m1>Some text after
+"
+ 'cpo-org-structure-block-expand-region
+ :setup (org-mode))
+
+;; expand-region: position 'end puts point at end
+(carettest-tesmo-test
+ test-osb-expand-region__position-end
+ "Some text before
+<m1>#+begin_src emacs-lisp
+  (message<p0> \"hello\")
+#+end_src
+<p1>Some text after
+"
+ (lambda () (cpo-org-structure-block-expand-region nil :position 'end))
+ :setup (org-mode))
+
+;; expand-region-inner: position 'end puts point at end
+(carettest-tesmo-test
+ test-osb-expand-region-inner__position-end
+ "Some text before
+#+begin_src emacs-lisp
+<m1>  (message<p0> \"hello\")
+<p1>#+end_src
+Some text after
+"
+ (lambda () (cpo-org-structure-block-expand-region-inner nil :position 'end))
+ :setup (org-mode))
+
 (provide 'test-cpo-org-structure-block)
 ;;; test-cpo-org-structure-block.el ends here

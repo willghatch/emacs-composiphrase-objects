@@ -152,10 +152,11 @@ Visit http://example.com<p1> or <p0>https://other.org for info.
 ;;; cpo-expand-region-to-url
 
 ;; Point and mark both inside same URL, expands to cover the full URL.
+;; Default position puts point at beginning of region.
 (carettest-tesmo-test
  test-url-movements-cpo-expand-region-to-url__inside-same-url
  "
-Visit <m1>http://exam<p0>ple.com<p1> or https://other.org for info.
+Visit <p1>http://exam<p0>ple.com<m1> or https://other.org for info.
 "
  'cpo-expand-region-to-url
  :transient-mark-mode t
@@ -166,7 +167,7 @@ Visit <m1>http://exam<p0>ple.com<p1> or https://other.org for info.
 (carettest-tesmo-test
  test-url-movements-cpo-expand-region-to-url__mark-inside-point-after
  "
-Visit <m1>http://example.com<p1><p0> or https://other.org for info.
+Visit <p1>http://example.com<m1><p0> or https://other.org for info.
 "
  'cpo-expand-region-to-url
  :transient-mark-mode t

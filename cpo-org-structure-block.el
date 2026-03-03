@@ -285,10 +285,21 @@ Moves to the end of the #+end_ line (after the newline)."
 
 ;;; Expand region
 
-(defun cpo-org-structure-block-expand-region (&optional strict)
+(defun cpo-org-structure-block--set-region-with-position (bounds position)
+  "Set the active region to BOUNDS with POSITION controlling point placement.
+POSITION nil or \\='beginning puts point at beginning, \\='end puts point at end."
+  (if (eq position 'end)
+      (progn (goto-char (cdr bounds))
+             (set-mark (car bounds)))
+    (goto-char (car bounds))
+    (set-mark (cdr bounds))))
+
+(cl-defun cpo-org-structure-block-expand-region (&optional strict &key position)
   "Expand region to the bounds of the org structure block at point.
 When STRICT is non-nil, only expand if the new bounds are strictly larger
-than the current region."
+than the current region.
+POSITION controls where point ends up: nil or \\='beginning puts point
+at the beginning of the region, \\='end puts point at the end."
   (interactive)
   (let ((bounds (cpo-org-structure-block--bounds)))
     (when bounds
@@ -298,17 +309,17 @@ than the current region."
                                   (cons (point) (point)))))
             (when (or (< (car bounds) (car current-region))
                       (> (cdr bounds) (cdr current-region)))
-              (goto-char (car bounds))
-              (set-mark (cdr bounds))
+              (cpo-org-structure-block--set-region-with-position bounds position)
               (activate-mark)))
-        (goto-char (car bounds))
-        (set-mark (cdr bounds))
+        (cpo-org-structure-block--set-region-with-position bounds position)
         (activate-mark)))))
 
-(defun cpo-org-structure-block-expand-region-inner (&optional strict)
+(cl-defun cpo-org-structure-block-expand-region-inner (&optional strict &key position)
   "Expand region to the inner bounds of the org structure block at point.
 When STRICT is non-nil, only expand if the new bounds are strictly larger
-than the current region."
+than the current region.
+POSITION controls where point ends up: nil or \\='beginning puts point
+at the beginning of the region, \\='end puts point at the end."
   (interactive)
   (let ((bounds (cpo-org-structure-block--inner-bounds)))
     (when bounds
@@ -318,11 +329,9 @@ than the current region."
                                   (cons (point) (point)))))
             (when (or (< (car bounds) (car current-region))
                       (> (cdr bounds) (cdr current-region)))
-              (goto-char (car bounds))
-              (set-mark (cdr bounds))
+              (cpo-org-structure-block--set-region-with-position bounds position)
               (activate-mark)))
-        (goto-char (car bounds))
-        (set-mark (cdr bounds))
+        (cpo-org-structure-block--set-region-with-position bounds position)
         (activate-mark)))))
 
 ;;; Open function

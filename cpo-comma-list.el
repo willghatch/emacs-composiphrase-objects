@@ -472,15 +472,19 @@ If COUNT is negative, move forward."
 
 ;;; Expand region
 
-(defun cpo-comma-list-expand-region ()
-  "Expand region to comma-list element at point."
+(cl-defun cpo-comma-list-expand-region (&key position)
+  "Expand region to comma-list element at point.
+POSITION controls where point ends up: nil or \\='beginning puts point
+at the beginning of the region, \\='end puts point at the end."
   (interactive)
-  (cpo-text-object-stuff--expand-region-to-thing 'cpo-comma-list))
+  (cpo-text-object-stuff--expand-region-to-thing 'cpo-comma-list nil :position position))
 
-(defun cpo-comma-list-expand-region-outer ()
-  "Expand region to outer comma-list element at point."
+(cl-defun cpo-comma-list-expand-region-outer (&key position)
+  "Expand region to outer comma-list element at point.
+POSITION controls where point ends up: nil or \\='beginning puts point
+at the beginning of the region, \\='end puts point at the end."
   (interactive)
-  (cpo-text-object-stuff--expand-region-to-thing 'cpo-comma-list-outer))
+  (cpo-text-object-stuff--expand-region-to-thing 'cpo-comma-list-outer nil :position position))
 
 ;; Register bounds-of-thing-at-point for expand-region integration.
 (put 'cpo-comma-list 'bounds-of-thing-at-point

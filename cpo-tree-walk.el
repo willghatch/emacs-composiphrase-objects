@@ -465,28 +465,32 @@ If REGION is null, then any region succeeds.
   "
 Takes an expansion func as is returned by cpo-tree-walk--expanded-region.
 Returns an interactive command to expand region.
+The returned command accepts an optional COUNT and an optional POSITION
+keyword argument (\\='beginning or \\='end).  When POSITION is nil or
+\\='beginning, point is placed at the beginning of the region.  When
+POSITION is \\='end, point is placed at the end.
 "
-  (lambda (&optional count)
-    ;; TODO - add num
-    (interactive "p")
-    (dotimes (i (or count 1))
-      (let* ((current-region (if (region-active-p)
-                                 (cons (region-beginning)
-                                       (region-end))
-                               nil))
-             (start-anchor (or (and current-region (car current-region))
-                               (point)))
-             (new-bounds (funcall expansion-func strictly-grow start-anchor current-region))
-             )
-        (when new-bounds
-          (if (and (region-active-p)
-                   (< (mark) (point)))
-              (progn
-                (set-mark (car new-bounds))
-                (goto-char (cdr new-bounds)))
-            (progn
-              (set-mark (cdr new-bounds))
-              (goto-char (car new-bounds)))))))))
+  (cl-function
+   (lambda (&optional count &key position)
+     ;; TODO - add num
+     (interactive "p")
+     (dotimes (i (or count 1))
+       (let* ((current-region (if (region-active-p)
+                                  (cons (region-beginning)
+                                        (region-end))
+                                nil))
+              (start-anchor (or (and current-region (car current-region))
+                                (point)))
+              (new-bounds (funcall expansion-func strictly-grow start-anchor current-region))
+              )
+         (when new-bounds
+           (if (eq position 'end)
+               (progn
+                 (set-mark (car new-bounds))
+                 (goto-char (cdr new-bounds)))
+             (progn
+               (set-mark (cdr new-bounds))
+               (goto-char (car new-bounds))))))))))
 
 
 (defun cpo-tree-walk--text-object-no-end-helper (lfunc rfunc up-func)

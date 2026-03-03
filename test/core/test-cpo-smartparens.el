@@ -2,8 +2,8 @@
 
 (require 'cpo-smartparens)
 (require 'carettest-tesmut)
+(require 'carettest-tesmo)
 (require 'ert)
-(require 'carettest-tesmut)
 
 ;; TODO - actually write a bunch of tests
 ;; TODO - maybe use smartparens testing infrastructure, it has a lot of convenience definitions.  They are probably mostly internal, but they are probably sufficiently stable.
@@ -21,12 +21,6 @@
          (message "Test failure, should look at: %s" str)
          (message "actually looking at: %s" (buffer-substring (point) (min (point-max) (+ (point) 10)))))
        (should result))))
-(defmacro should/mark-looking-at (at-string)
-  `(progn
-     (save-mark-and-excursion
-       (exchange-point-and-mark)
-       (should/looking-at ,at-string))))
-
 (ert-deftest test-expand-region-to-any-delimiter-after-last-child_smartparens ()
   (with-temp-buffer
     (insert "
@@ -304,3 +298,41 @@
  :function 'cpo-smartparens-up-parent-beginning
  :setup (progn (emacs-lisp-mode)
                (setq-local sp-pair-list '(("(" . ")")))))
+
+;;; Position argument tests for tree-walk expand-region
+
+;; expand-region: default position puts point at beginning
+(carettest-tesmo-test
+ test-smartparens-expand-region__default-position
+ "(outer (inner <p1>foo<p0><m1> bar))"
+ 'cpo-smartparens-expand-region
+ :transient-mark-mode t
+ :points ("<p0>" "<p1>")
+ :marks ("<m0>" "<m1>")
+ :setup (progn (emacs-lisp-mode)
+               (setq-local sp-pair-list '(("(" . ")")))))
+
+;; expand-region: position 'end puts point at end
+(carettest-tesmo-test
+ test-smartparens-expand-region__position-end
+ "(outer (inner <m1>foo<p0><p1> bar))"
+ (lambda () (cpo-smartparens-expand-region 1 :position 'end))
+ :transient-mark-mode t
+ :points ("<p0>" "<p1>")
+ :marks ("<m0>" "<m1>")
+ :setup (progn (emacs-lisp-mode)
+               (setq-local sp-pair-list '(("(" . ")")))))
+
+;; expand-region-to-any-delimiter: position 'end puts point at end
+;; Note: sp-pair-list is NOT set explicitly here -- emacs-lisp-mode
+;; lets smartparens lazily populate sp-pair-list, which is needed for
+;; multi-level expansion (the predicate uses at-open-delimiter-p,
+;; which requires sp-pair-list to have been populated by sp-get-thing).
+(carettest-tesmo-test
+ test-smartparens-expand-region-to-any-delimiter__position-end
+ "(outer <m1>(inner foo<p0> bar)<p1>)"
+ (lambda () (cpo-smartparens-expand-region-to-any-delimiter 1 :position 'end))
+ :transient-mark-mode t
+ :points ("<p0>" "<p1>")
+ :marks ("<m0>" "<m1>")
+ :setup (emacs-lisp-mode))

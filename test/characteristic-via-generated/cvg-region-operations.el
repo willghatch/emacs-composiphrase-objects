@@ -5,12 +5,13 @@
 
 ;; expand-region-with-final-newline
 ;; Single line, no initial region: expands to cover the whole line including trailing newline.
+;; Default position puts point at beginning.
 (carettest-tesmut-test
  test-region-operations-expand-region-with-final-newline__single-line
  :before
  "line one\nline <p>two\nline three\n"
  :after
- "line one\n<m>line two\n<p>line three\n"
+ "line one\n<p>line two\n<m>line three\n"
  :function
  (lambda nil
    (cpo-expand-region-to-fill-lines t))
@@ -19,13 +20,13 @@
 
 ;; expand-region-with-final-newline
 ;; Region spanning multiple lines: mark and point move to cover full lines,
-;; point ends after the final newline of the last line.
+;; point ends at beginning, mark after the final newline of the last line.
 (carettest-tesmut-test
  test-region-operations-expand-region-with-final-newline__multi-line
  :before
  "line one\nS<m>ed two\nfour gra<p>vida\n"
  :after
- "line one\n<m>Sed two\nfour gravida\n<p>"
+ "line one\n<p>Sed two\nfour gravida\n<m>"
  :function
  (lambda nil
    (cpo-expand-region-to-fill-lines t))
@@ -34,13 +35,13 @@
 
 ;; expand-region-without-final-newline
 ;; Region spanning two consecutive lines: expands to cover full lines,
-;; but point stops at end of last line (before its newline).
+;; point at beginning, mark at end of last line (before its newline).
 (carettest-tesmut-test
  test-region-operations-expand-region-without-final-newline__two-lines
  :before
  "line one\npoten<m>ti two\nSed<p> three\nline four\n"
  :after
- "line one\n<m>potenti two\nSed three<p>\nline four\n"
+ "line one\n<p>potenti two\nSed three<m>\nline four\n"
  :function
  (lambda nil
    (cpo-expand-region-to-fill-lines nil))
@@ -48,8 +49,7 @@
  t)
 
 ;; expand-region-without-final-newline
-;; Point is before mark (reversed ordering): the function handles this case
-;; by keeping point at the beginning of its line and mark at the end of its line.
+;; Point is before mark: default position always puts point at beginning.
 (carettest-tesmut-test
  test-region-operations-expand-region-without-final-newline__point-before-mark
  :before
