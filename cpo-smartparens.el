@@ -209,9 +209,16 @@ DIRECTION can be nil to detect, 'forward, or 'backward.
 
 
 (defun cpo-smartparens--up-to-prefix ()
-  (let ((bounds (cpo-smartparens--bounds-of-sexp-at-point (point) 'always nil)))
-    (and bounds
-         (goto-char (car bounds)))))
+  (let ((bounds-with-prefix (cpo-smartparens--bounds-of-sexp-at-point (point) 'always nil))
+        (bounds-without-prefix (cpo-smartparens--bounds-of-sexp-at-point (point) 'never nil)))
+    (and bounds-with-prefix
+         bounds-without-prefix
+         ;; Only move if there actually is a prefix (the two bounds differ).
+         ;; Without this check, being in the middle of a non-prefixed symbol
+         ;; would incorrectly move to the symbol start instead of going up
+         ;; to the parent.
+         (not (equal (car bounds-with-prefix) (car bounds-without-prefix)))
+         (goto-char (car bounds-with-prefix)))))
 
 (defun cpo-smartparens--forward-sibling-beginning ()
   (let ((new-point
@@ -358,7 +365,15 @@ DIRECTION can be nil to detect, 'forward, or 'backward.
           (when parent-open
             (goto-char parent-open)))
       (or (cpo-smartparens--move-if-advances 'cpo-smartparens--up-to-prefix nil)
-          (sp-backward-up-sexp)))))
+          (cpo-smartparens--move-if-advances 'sp-backward-up-sexp nil)
+          ;; Fall back to scan-lists when sp-backward-up-sexp fails to
+          ;; move (e.g. due to quote/unquote characters confusing
+          ;; smartparens).
+          (let ((parent-open (condition-case nil
+                                 (scan-lists (point) -1 1)
+                               (error nil))))
+            (when parent-open
+              (goto-char parent-open)))))))
 ;;;###autoload (autoload 'cpo-smartparens-up-parent-beginning "cpo-smartparens.el" "" t)
 (cpo-smartparens--command-wrap cpo-smartparens-up-parent-beginning
                                cpo-smartparens--up-sexp

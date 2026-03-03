@@ -226,3 +226,81 @@
  :function 'cpo-smartparens-up-parent-beginning
  :setup (progn (emacs-lisp-mode)
                (setq-local sp-pair-list '(("(" . ")")))))
+
+;;; Tests for up-parent-beginning from middle of symbol (the "back-up" motion).
+;;; When in the middle of a non-prefixed symbol, up-parent-beginning should go
+;;; directly to the parent delimiter, not to the start of the current symbol.
+
+;; From the middle of a non-prefixed symbol, go to the parent delimiter.
+(carettest-tesmut-test
+ test-cpo-smartparens-up-parent-beginning_middle-of-symbol-to-parent
+ :before "(foo b<p>ar baz)"
+ :after "<p>(foo bar baz)"
+ :function 'cpo-smartparens-up-parent-beginning
+ :setup (progn (emacs-lisp-mode)
+               (setq-local sp-pair-list '(("(" . ")")))))
+
+;; From the start of a non-prefixed symbol (not middle), also go to parent.
+(carettest-tesmut-test
+ test-cpo-smartparens-up-parent-beginning_start-of-symbol-to-parent
+ :before "(foo <p>bar baz)"
+ :after "<p>(foo bar baz)"
+ :function 'cpo-smartparens-up-parent-beginning
+ :setup (progn (emacs-lisp-mode)
+               (setq-local sp-pair-list '(("(" . ")")))))
+
+;; From the middle of a symbol in a nested context, go to the innermost
+;; parent delimiter, not to the start of the symbol.
+(carettest-tesmut-test
+ test-cpo-smartparens-up-parent-beginning_middle-of-nested-symbol
+ :before "(outer (inner f<p>oo bar))"
+ :after "(outer <p>(inner foo bar))"
+ :function 'cpo-smartparens-up-parent-beginning
+ :setup (progn (emacs-lisp-mode)
+               (setq-local sp-pair-list '(("(" . ")")))))
+
+;; Two consecutive up-parent-beginning calls from the middle of a symbol
+;; should reach the grandparent delimiter (skipping the symbol start).
+(carettest-tesmut-test
+ test-cpo-smartparens-up-parent-beginning_two-steps-from-middle
+ :before "(outer (inner f<p>oo bar))"
+ :after "<p>(outer (inner foo bar))"
+ :function (lambda () (cpo-smartparens-up-parent-beginning 2))
+ :setup (progn (emacs-lisp-mode)
+               (setq-local sp-pair-list '(("(" . ")")))))
+
+(carettest-tesmut-test
+ test-cpo-smartparens-up-parent-beginning_two-steps-from-middle_zyxwv
+ ;; the quote is the first place it goes up to
+ :before "(outer (inner 'f<p>oo bar))"
+ :after "(outer <p>(inner 'foo bar))"
+ :function (lambda () (cpo-smartparens-up-parent-beginning 2))
+ :setup (progn (emacs-lisp-mode)
+               (setq-local sp-pair-list '(("(" . ")")))))
+
+;; From middle of symbol, sp-backward-up-sexp may fail when a quote
+;; character confuses smartparens.  The scan-lists fallback handles this.
+(carettest-tesmut-test
+ test-cpo-smartparens-up-parent-beginning_with-quote-in-sexp
+ :before "(setq f<p>oo 'bar)"
+ :after "<p>(setq foo 'bar)"
+ :function 'cpo-smartparens-up-parent-beginning
+ :setup (progn (smartparens-mode 1)
+               (sp-local-pair 'emacs-lisp-mode "\"" "\"")))
+
+(carettest-tesmut-test
+ test-cpo-smartparens-up-parent-beginning_with-quote-in-sexp-to-quote
+ :before "(setq 'f<p>oo 'bar)"
+ :after "(setq <p>'foo 'bar)"
+ :function 'cpo-smartparens-up-parent-beginning
+ :setup (progn (smartparens-mode 1)
+               (sp-local-pair 'emacs-lisp-mode "\"" "\"")))
+
+;; From an open delimiter, should go to parent.
+(carettest-tesmut-test
+ test-cpo-smartparens-up-parent-beginning_from-open-delimiter
+ :before "(outer <p>(inner foo bar))"
+ :after "<p>(outer (inner foo bar))"
+ :function 'cpo-smartparens-up-parent-beginning
+ :setup (progn (emacs-lisp-mode)
+               (setq-local sp-pair-list '(("(" . ")")))))

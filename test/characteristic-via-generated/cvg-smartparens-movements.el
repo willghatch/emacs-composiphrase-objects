@@ -181,9 +181,11 @@
  ("<m0>" "<m1>"))
 
 ;; Inside concat sexp, moves up to beginning of containing list.
+;; From middle of a non-prefixed symbol, goes directly to the parent
+;; delimiter, not to the start of the symbol.
 (carettest-tesmo-test
  test-smartparens-movements-cpo-smartparens-up-parent-beginning__in-concat
- "(list x y (<p1>con<p0>cat \"r\" (+ 1 2)))"
+ "(list x y <p1>(con<p0>cat \"r\" (+ 1 2)))"
  'cpo-smartparens-up-parent-beginning
  :transient-mark-mode
  nil
@@ -197,10 +199,12 @@
  ("<m0>" "<m1>"))
 
 ;; Inside setq, moves up to beginning of containing sexp.
+;; From middle of a non-prefixed symbol, goes directly to the parent
+;; delimiter, not to the start of the symbol.
 (carettest-tesmo-test
  test-smartparens-movements-cpo-smartparens-up-parent-beginning__in-setq
  "(let ((x 1))
-  (<p1>set<p0>q foo 'bar)
+  <p1>(set<p0>q foo 'bar)
   (+ x 1))"
  'cpo-smartparens-up-parent-beginning
  :transient-mark-mode
@@ -539,11 +543,13 @@
 
 ;;; up-parent-beginning-3 -- moves 3 levels up
 
-;; From bzaz in let binding, 3 levels up reaches the bindings list.
+;; From bzaz in let binding, 3 levels up reaches the let form.
+;; (One extra level compared to old behavior because the first step
+;; now skips the symbol start and goes directly to the parent delimiter.)
 (carettest-tesmo-test
  test-smartparens-movements-up-parent-beginning-3__from-binding-atom
  "(defun foo (a b)
-  (let <p1>((var1 (+ a b))
+  <p1>(let ((var1 (+ a b))
         (bz<p0>az {xyz}))
     (+ a b)))"
  (lambda nil
@@ -559,11 +565,13 @@
  :marks
  ("<m0>" "<m1>"))
 
-;; From deeply nested arg, 3 up reaches (concat ...).
+;; From deeply nested arg, 3 up reaches (list ...).
+;; (One extra level compared to old behavior because the first step
+;; now skips the symbol start and goes directly to the parent delimiter.)
 (carettest-tesmo-test
  test-smartparens-movements-up-parent-beginning-3__from-string-arg
  "(if (> x y)
-    (list x y <p1>(concat \"r\" (number-to-string<p0> var1)))
+    <p1>(list x y (concat \"r\" (number-to-string<p0> var1)))
   (vector y x))"
  (lambda nil
    (cpo-smartparens-up-parent-beginning 3))
@@ -578,11 +586,13 @@
  :marks
  ("<m0>" "<m1>"))
 
-;; From braces inside brackets, 3 up goes to the square bracket sexp.
+;; From braces inside brackets, 3 up goes to the let form.
+;; (One extra level compared to old behavior because the first step
+;; now skips the symbol start and goes directly to the parent delimiter.)
 (carettest-tesmo-test
  test-smartparens-movements-up-parent-beginning-3__from-braces-in-brackets
- "(let ((x 1))
-  <p1>[with squares {b<p0>races (paren [brack {brace (par)}])}]
+ "<p1>(let ((x 1))
+  [with squares {b<p0>races (paren [brack {brace (par)}])}]
   (+ x 1))"
  (lambda nil
    (cpo-smartparens-up-parent-beginning 3))
@@ -686,10 +696,11 @@
  :marks
  ("<m0>" "<m1>"))
 
-;; Inside setq, mid-symbol: expand is a no-op here.
+;; Inside setq, mid-symbol: now correctly expands to the enclosing
+;; paren delimiter since up-parent skips the symbol start.
 (carettest-tesmo-test
  test-smartparens-movements-cpo-smartparens-expand-region-to-any-delimiter__in-setq
- "(setq f<p1><p0>oo 'bar)"
+ "<p1>(setq f<p0>oo 'bar)<m1>"
  'cpo-smartparens-expand-region-to-any-delimiter
  :transient-mark-mode
  t
@@ -704,12 +715,13 @@
 
 ;;; expand-region-to-parens -- expands to nearest paren delimiter
 
-;; Deep inside format with mark set: large active region means expand is a no-op.
+;; Deep inside format with mark set: now correctly expands to the
+;; enclosing (let ...) paren since up-parent can reach it.
 (carettest-tesmo-test
  test-smartparens-movements-expand-region-to-parens__deep-in-format
- "(let ()
-  (setq f<m1><m0>oo 'bar)
-  (vector x y (format \"%s %s\" arg1 a<p1><p0>rg2)))"
+ "<p1>(let ()
+  (setq f<m0>oo 'bar)
+  (vector x y (format \"%s %s\" arg1 a<p0>rg2)))<m1>"
  (lambda nil
    (cpo-smartparens-expand-region-to-delimiter "("))
  :transient-mark-mode
