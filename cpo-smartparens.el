@@ -48,7 +48,9 @@ Return nil if not at any current smartparens delimiter.
 "
   (seq-reduce (lambda (prev cur)
                 (if prev prev
-                  (and (save-mark-and-excursion
+                  (and (not (and at-end?
+                                 (< (- (point) (point-min)) (length cur))))
+                       (save-mark-and-excursion
                          (when at-end? (backward-char (length cur)))
                          (looking-at-p (regexp-quote cur)))
                        cur)))
@@ -344,14 +346,19 @@ DIRECTION can be nil to detect, 'forward, or 'backward.
   ;; (per the "at" semantics), so --up-to-prefix would just move to the
   ;; beginning of that same sexp, not to the parent.  Use scan-lists
   ;; to go up one nesting level instead.
-  (if (cpo-smartparens--at-close-delimiter-p)
-      (let ((parent-open (condition-case nil
-                             (scan-lists (point) -1 1)
-                           (error nil))))
-        (when parent-open
-          (goto-char parent-open)))
-    (or (cpo-smartparens--move-if-advances 'cpo-smartparens--up-to-prefix nil)
-        (sp-backward-up-sexp))))
+  ;; However, self-paired delimiters (like " which is both open and close)
+  ;; are string delimiters that scan-lists does not handle correctly, so
+  ;; fall through to the sp-backward-up-sexp path for those.
+  (let ((close-delim (cpo-smartparens--at-close-delimiter-p)))
+    (if (and close-delim
+             (not (member close-delim (cpo-smartparens--delim-list t))))
+        (let ((parent-open (condition-case nil
+                               (scan-lists (point) -1 1)
+                             (error nil))))
+          (when parent-open
+            (goto-char parent-open)))
+      (or (cpo-smartparens--move-if-advances 'cpo-smartparens--up-to-prefix nil)
+          (sp-backward-up-sexp)))))
 ;;;###autoload (autoload 'cpo-smartparens-up-parent-beginning "cpo-smartparens.el" "" t)
 (cpo-smartparens--command-wrap cpo-smartparens-up-parent-beginning
                                cpo-smartparens--up-sexp
