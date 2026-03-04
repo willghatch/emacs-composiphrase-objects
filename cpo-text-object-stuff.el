@@ -328,7 +328,8 @@ Returns the new position information as (new-bounds-1 . new-bounds-2)."
 
 ;; TODO - redefine the above transpose functions in terms of this to reduce code.
 (defun cpo-text-object-stuff--transpose-forward-with-funcs-once (bounds-func forward-func)
-  (let ((bounds-1 (funcall bounds-func)))
+  (let* ((original-point (point))
+         (bounds-1 (funcall bounds-func)))
     (and bounds-1
          (let ((bounds-2 (save-mark-and-excursion
                            (goto-char (cdr bounds-1))
@@ -339,7 +340,8 @@ Returns the new position information as (new-bounds-1 . new-bounds-2)."
                                       (funcall bounds-func)))))))
            (when (and bounds-2
                       (cpo-tree-walk--regions-not-overlapping bounds-1 bounds-2))
-             (let* ((bounds-l (if (< (car bounds-1) (car bounds-2)) bounds-1 bounds-2))
+             (let* ((offset (- original-point (car bounds-1)))
+                    (bounds-l (if (< (car bounds-1) (car bounds-2)) bounds-1 bounds-2))
                     (bounds-r (if (> (car bounds-1) (car bounds-2)) bounds-1 bounds-2))
                     (sl (buffer-substring-no-properties (car bounds-l)
                                                         (cdr bounds-l)))
@@ -353,25 +355,27 @@ Returns the new position information as (new-bounds-1 . new-bounds-2)."
                  (delete-region (car bounds-l) (cdr bounds-l))
                  (goto-char (car bounds-l))
                  (insert sr))
-               ;; put cursor at beginning of bounds-2, adjusted for change
+               ;; put cursor at same offset within transposed object
                (if (equal bounds-1 bounds-l)
                    (let ((len-diff (- (length sr) (length sl))))
-                     (goto-char (+ len-diff (car bounds-r))))
-                 (goto-char (car bounds-l)))
+                     (goto-char (+ len-diff (car bounds-r) offset)))
+                 (goto-char (+ (car bounds-l) offset)))
                (undo-boundary)))))))
 
 (defun cpo-text-object-stuff--transpose-backward-with-funcs-once (bounds-func backward-func forward-func)
-  (let ((bounds-1 (funcall bounds-func)))
+  (let* ((original-point (point))
+         (bounds-1 (funcall bounds-func)))
     (and bounds-1
-         (let ((bounds-2 (save-mark-and-excursion
-                           (goto-char (car bounds-1))
-                           (funcall backward-func)
-                           (funcall bounds-func))))
+         (let* ((offset (- original-point (car bounds-1)))
+                (bounds-2 (save-mark-and-excursion
+                            (goto-char (car bounds-1))
+                            (funcall backward-func)
+                            (funcall bounds-func))))
            (when (and bounds-2
                       (<= (cdr bounds-2) (car bounds-1)))
              (goto-char (car bounds-2))
              (cpo-text-object-stuff--transpose-forward-with-funcs-once bounds-func forward-func)
-             (goto-char (car bounds-2)))))))
+             (goto-char (+ (car bounds-2) offset)))))))
 
 (defmacro cpo-text-object-stuff--define-transpose-funcs
     ;; TODO - must use symbols for func names at call site to not make duplicate closures

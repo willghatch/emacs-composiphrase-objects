@@ -293,22 +293,21 @@ If COUNT is negative, move backward."
 (cpo-text-object-stuff--def-expand-region-to-thing cpo-date)
 (cpo-text-object-stuff--def-expand-region-to-thing cpo-datetime)
 
-;;;; TODO - these traanspose functions aren't working.
-;; (cpo-text-object-stuff--define-transpose-funcs
-;;  cpo-transpose-date-backward
-;;  cpo-transpose-date-forward
-;;  'cpo-text-object-stuff--date-bounds-at-point
-;;  'cpo-backward-date-beginning
-;;  'cpo-forward-date-beginning
-;;  )
+(cpo-text-object-stuff--define-transpose-funcs
+ cpo-transpose-date-backward
+ cpo-transpose-date-forward
+ 'cpo-text-object-stuff--date-bounds-at-point
+ 'cpo-backward-date-beginning
+ 'cpo-forward-date-beginning
+ )
 
-;; (cpo-text-object-stuff--define-transpose-funcs
-;;  cpo-transpose-datetime-backward
-;;  cpo-transpose-datetime-forward
-;;  'cpo-text-object-stuff--datetime-bounds-at-point
-;;  'cpo-backward-datetime-beginning
-;;  'cpo-forward-datetime-beginning
-;;  )
+(cpo-text-object-stuff--define-transpose-funcs
+ cpo-transpose-datetime-backward
+ cpo-transpose-datetime-forward
+ 'cpo-text-object-stuff--datetime-bounds-at-point
+ 'cpo-backward-datetime-beginning
+ 'cpo-forward-datetime-beginning
+ )
 
 
 ;;;; Chronological movement
@@ -487,5 +486,94 @@ point lands at the start or end of the target date string."
   (repeatable-motion-define-pair 'cpo-forward-date-end-chronological 'cpo-backward-date-end-chronological)
   (repeatable-motion-define-pair 'cpo-forward-datetime-beginning-chronological 'cpo-backward-datetime-beginning-chronological)
   (repeatable-motion-define-pair 'cpo-forward-datetime-end-chronological 'cpo-backward-datetime-end-chronological))
+
+
+;;;; Chronological transpose
+
+(defun cpo-date--transpose-chronological-once (format direction)
+  "Swap the date at point with its chronologically adjacent date.
+FORMAT is \\='date or \\='datetime.
+DIRECTION is \\='forward or \\='backward.
+Returns non-nil if a swap was performed."
+  (let* ((original-point (point))
+         (sorted-dates (cpo-date--collect-dates-in-buffer format))
+         (n (length sorted-dates))
+         (cur-idx (and (> n 0) (cpo-date--current-chronological-index sorted-dates))))
+    (when (and cur-idx (>= cur-idx 0))
+      (let* ((adj-idx (if (eq direction 'forward) (1+ cur-idx) (1- cur-idx))))
+        (when (and (>= adj-idx 0) (< adj-idx n) (/= adj-idx cur-idx))
+          (let* ((cur-entry (nth cur-idx sorted-dates))
+                 (adj-entry (nth adj-idx sorted-dates))
+                 (cur-beg (nth 1 cur-entry))
+                 (cur-end (nth 2 cur-entry))
+                 (adj-beg (nth 1 adj-entry))
+                 (adj-end (nth 2 adj-entry))
+                 (offset (- original-point cur-beg))
+                 ;; Determine which is left/right in the buffer
+                 (left-beg (min cur-beg adj-beg))
+                 (left-end (if (= left-beg cur-beg) cur-end adj-end))
+                 (right-beg (max cur-beg adj-beg))
+                 (right-end (if (= right-beg cur-beg) cur-end adj-end))
+                 (sl (buffer-substring-no-properties left-beg left-end))
+                 (sr (buffer-substring-no-properties right-beg right-end)))
+            ;; Swap regions (right first to preserve left positions)
+            (atomic-change-group
+              (delete-region right-beg right-end)
+              (goto-char right-beg)
+              (insert sl)
+              (delete-region left-beg left-end)
+              (goto-char left-beg)
+              (insert sr))
+            ;; Move point to where the current date ended up,
+            ;; preserving the offset of point within the object.
+            ;; If current was the left one, it moved to the right position
+            ;; (adjusted for any length difference).
+            ;; If current was the right one, it moved to the left position.
+            (if (= cur-beg left-beg)
+                (let ((len-diff (- (length sr) (length sl))))
+                  (goto-char (+ right-beg len-diff offset)))
+              (goto-char (+ left-beg offset)))
+            (undo-boundary)
+            t))))))
+
+(defun cpo-transpose-date-forward-chronological (&optional count)
+  "Swap date at point with the chronologically next date, COUNT times."
+  (interactive "p")
+  (let* ((count (or count 1))
+         (fwd (<= 0 count))
+         (count (abs count)))
+    (dotimes (_i count)
+      (cpo-date--transpose-chronological-once
+       'date (if fwd 'forward 'backward)))))
+
+(defun cpo-transpose-date-backward-chronological (&optional count)
+  "Swap date at point with the chronologically previous date, COUNT times."
+  (interactive "p")
+  (let* ((count (or count 1))
+         (fwd (<= 0 count))
+         (count (abs count)))
+    (dotimes (_i count)
+      (cpo-date--transpose-chronological-once
+       'date (if fwd 'backward 'forward)))))
+
+(defun cpo-transpose-datetime-forward-chronological (&optional count)
+  "Swap datetime at point with the chronologically next datetime, COUNT times."
+  (interactive "p")
+  (let* ((count (or count 1))
+         (fwd (<= 0 count))
+         (count (abs count)))
+    (dotimes (_i count)
+      (cpo-date--transpose-chronological-once
+       'datetime (if fwd 'forward 'backward)))))
+
+(defun cpo-transpose-datetime-backward-chronological (&optional count)
+  "Swap datetime at point with the chronologically previous datetime, COUNT times."
+  (interactive "p")
+  (let* ((count (or count 1))
+         (fwd (<= 0 count))
+         (count (abs count)))
+    (dotimes (_i count)
+      (cpo-date--transpose-chronological-once
+       'datetime (if fwd 'backward 'forward)))))
 
 (provide 'cpo-date-object)

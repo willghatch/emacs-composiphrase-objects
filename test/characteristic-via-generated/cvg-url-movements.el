@@ -238,7 +238,7 @@ Visit http://exam<p>ple.com or https://other.org for info.
 "
  :after
  "
-Visit https://other.org or <p>http://example.com for info.
+Visit https://other.org or http://exam<p>ple.com for info.
 "
  :function 'cpo-transpose-url-forward
  :transient-mark-mode nil)
@@ -254,7 +254,7 @@ See ftp://more.example.net for more.
  :after
  "
 Visit http://example.com or ftp://more.example.net for info.
-See <p>https://other.org for more.
+See https://other<p>.org for more.
 "
  :function 'cpo-transpose-url-forward
  :transient-mark-mode nil)
@@ -271,7 +271,7 @@ Visit http://example.com or https://oth<p>er.org for info.
 "
  :after
  "
-Visit <p>https://other.org or http://example.com for info.
+Visit https://oth<p>er.org or http://example.com for info.
 "
  :function 'cpo-transpose-url-backward
  :transient-mark-mode nil)
@@ -286,7 +286,7 @@ See ftp://more.example<p>.net for more.
 "
  :after
  "
-Visit http://example.com or <p>ftp://more.example.net for info.
+Visit http://example.com or ftp://more.example<p>.net for info.
 See https://other.org for more.
 "
  :function 'cpo-transpose-url-backward
