@@ -88,13 +88,51 @@
 
 ;; Expand from inside "camel" selects the whole "camel" sub-word.
 (carettest-tesmo-test cpo-camel-case-sub-word-test-expand-region-first
-                      "<m1>ca<p0>mel<p1>CaseWord"
+                      "<p1>ca<p0>mel<m1>CaseWord"
                       'cpo-expand-region-to-camel-case-sub-word)
 
 ;; Expand from inside "Case" selects the whole "Case" sub-word.
 (carettest-tesmo-test cpo-camel-case-sub-word-test-expand-region-middle
-                      "camel<m1>Ca<p0>se<p1>Word"
+                      "camel<p1>Ca<p0>se<m1>Word"
                       'cpo-expand-region-to-camel-case-sub-word)
+
+;;; Test: expand region with :position argument
+
+;; expand-region-to-camel-case-sub-word: default position puts point at beginning
+(carettest-tesmo-test
+ cpo-camel-case-sub-word-test-expand-region__default-position-is-beginning
+ "<p1>ca<p0>mel<m1>CaseWord"
+ 'cpo-expand-region-to-camel-case-sub-word
+ :transient-mark-mode t
+ :points ("<p0>" "<p1>")
+ :marks ("<m0>" "<m1>"))
+
+;; expand-region-to-camel-case-sub-word: position 'end puts point at end of region
+(carettest-tesmo-test
+ cpo-camel-case-sub-word-test-expand-region__position-end
+ "<m1>ca<p0>mel<p1>CaseWord"
+ (lambda () (cpo-expand-region-to-camel-case-sub-word :position 'end))
+ :transient-mark-mode t
+ :points ("<p0>" "<p1>")
+ :marks ("<m0>" "<m1>"))
+
+;; expand-region-to-camel-case-sub-word: position 'beginning explicitly puts point at beginning
+(carettest-tesmo-test
+ cpo-camel-case-sub-word-test-expand-region__position-beginning-explicit
+ "<p1>ca<p0>mel<m1>CaseWord"
+ (lambda () (cpo-expand-region-to-camel-case-sub-word :position 'beginning))
+ :transient-mark-mode t
+ :points ("<p0>" "<p1>")
+ :marks ("<m0>" "<m1>"))
+
+;; expand-region-to-camel-case-sub-word: position 'end on middle sub-word
+(carettest-tesmo-test
+ cpo-camel-case-sub-word-test-expand-region__position-end-middle
+ "camel<m1>Ca<p0>se<p1>Word"
+ (lambda () (cpo-expand-region-to-camel-case-sub-word :position 'end))
+ :transient-mark-mode t
+ :points ("<p0>" "<p1>")
+ :marks ("<m0>" "<m1>"))
 
 ;;; Test: transpose forward
 
@@ -258,11 +296,11 @@
 
 ;; expand-region within consecutive-uppercase words.
 (carettest-tesmo-test cpo-camel-case-sub-word-test-expand-region-xml
-                      "<m1>X<p0>ML<p1>Parser someYAMLParser"
+                      "<p1>X<p0>ML<m1>Parser someYAMLParser"
                       'cpo-expand-region-to-camel-case-sub-word)
 
 (carettest-tesmo-test cpo-camel-case-sub-word-test-expand-region-yaml
-                      "XMLParser some<m1>YA<p0>ML<p1>Parser"
+                      "XMLParser some<p1>YA<p0>ML<m1>Parser"
                       'cpo-expand-region-to-camel-case-sub-word)
 
 ;; Transpose forward with consecutive uppercase: XMLParser -> ParserXML.
@@ -323,7 +361,7 @@
 
 ;; expand-region from inside "number2".
 (carettest-tesmo-test cpo-camel-case-sub-word-test-expand-region-number
-                      "<m1>num<p0>ber2<p1>String"
+                      "<p1>num<p0>ber2<m1>String"
                       'cpo-expand-region-to-camel-case-sub-word)
 
 ;; Transpose forward: "number2" swaps with "String".

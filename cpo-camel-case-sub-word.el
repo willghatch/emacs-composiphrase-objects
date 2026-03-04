@@ -330,10 +330,12 @@ If COUNT is negative, move forward."
 (put 'cpo-camel-case-sub-word 'bounds-of-thing-at-point
      'cpo-camel-case-sub-word--bounds-at-point)
 
-(defun cpo-expand-region-to-camel-case-sub-word ()
-  "Expand region to camelCase sub-word at point."
+(cl-defun cpo-expand-region-to-camel-case-sub-word (&key position)
+  "Expand region to camelCase sub-word at point.
+POSITION controls where point ends up: nil or \\='beginning puts point
+at the beginning of the region, \\='end puts point at the end."
   (interactive)
-  (cpo-text-object-stuff--expand-region-to-thing 'cpo-camel-case-sub-word t))
+  (cpo-text-object-stuff--expand-region-to-thing 'cpo-camel-case-sub-word t :position position))
 
 ;;; Capitalization helpers for transpose and open
 
