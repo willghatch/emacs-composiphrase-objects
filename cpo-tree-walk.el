@@ -653,12 +653,14 @@ So the only things that will be different between the two lists are the point an
                 (undo-amalgamate-change-group change-group))
             (error "regions for thing, parent, and ancestor not strictly growing")))))))
 
-(defun cpo-tree-walk--up-to-root (up-func)
-  (while (cpo-tree-walk--motion-moved up-func)))
-(defun cpo-tree-walk--select-root (up-func expand-region-func)
+(cl-defun cpo-tree-walk--up-to-root (up-func &key position)
+  (while (cpo-tree-walk--motion-moved up-func))
+  (when (and (eq position 'end) (region-active-p))
+    (exchange-point-and-mark)))
+(cl-defun cpo-tree-walk--select-root (up-func expand-region-func &key position)
   ;; Alternatively I could repeat the expand-region-func, but this seems better as long as it works.
   (cpo-tree-walk--up-to-root up-func)
-  (funcall expand-region-func))
+  (funcall expand-region-func :position position))
 
 (defun cpo-tree-walk--collect-tree-ancestors (initial-bounds expand-region-func)
   "Collect ancestors starting from INITIAL-BOUNDS by repeatedly calling EXPAND-REGION-FUNC.
@@ -820,15 +822,19 @@ node below that on each side, and take the max/min of those two regions."
              :children-bounds-func ,(or use-children-bounds `',def-children-bounds-for-tree-with-no-end-delimiter)
              :up-func ,(or use-up-to-parent-region-for-expand-func use-up-to-parent)))
          (when def-up-to-root
-           `(defun ,def-up-to-root ()
-              ,(format "Go up to the top tree ancestor for %s." use-object-name)
+           `(cl-defun ,def-up-to-root (&key position)
+              ,(format "Go up to the top tree ancestor for %s.
+POSITION controls where point ends up: nil or \\='beginning puts point
+at the beginning of the region, \\='end puts point at the end." use-object-name)
               (interactive)
-              (cpo-tree-walk--up-to-root ,use-up-to-parent)))
+              (cpo-tree-walk--up-to-root ,use-up-to-parent :position position)))
          (when def-select-root
-           `(defun ,def-select-root ()
-              ,(format "Select region (activate region with the bounds) of top tree ancestor for %s." use-object-name)
+           `(cl-defun ,def-select-root (&key position)
+              ,(format "Select region (activate region with the bounds) of top tree ancestor for %s.
+POSITION controls where point ends up: nil or \\='beginning puts point
+at the beginning of the region, \\='end puts point at the end." use-object-name)
               (interactive)
-              (cpo-tree-walk--select-root ,use-up-to-parent ',def-expand-region)))
+              (cpo-tree-walk--select-root ,use-up-to-parent ',def-expand-region :position position)))
          (when def-visual-modifier
            `(defun ,def-visual-modifier (region-beg region-end)
               ,(format "Visual modifier function for %s tree objects with sibling support.
