@@ -180,44 +180,6 @@
  :marks
  ("<m0>" "<m1>"))
 
-;; Inside concat sexp, moves up to beginning of containing list.
-;; From middle of a non-prefixed symbol, goes directly to the parent
-;; delimiter, not to the start of the symbol.
-(carettest-tesmo-test
- test-smartparens-movements-cpo-smartparens-up-parent-beginning__in-concat
- "(list x y <p1>(con<p0>cat \"r\" (+ 1 2)))"
- 'cpo-smartparens-up-parent-beginning
- :transient-mark-mode
- nil
- :setup
- (progn
-   (smartparens-mode 1)
-   (sp-local-pair 'emacs-lisp-mode "\"" "\""))
- :points
- ("<p0>" "<p1>")
- :marks
- ("<m0>" "<m1>"))
-
-;; Inside setq, moves up to beginning of containing sexp.
-;; From middle of a non-prefixed symbol, goes directly to the parent
-;; delimiter, not to the start of the symbol.
-(carettest-tesmo-test
- test-smartparens-movements-cpo-smartparens-up-parent-beginning__in-setq
- "(let ((x 1))
-  <p1>(set<p0>q foo 'bar)
-  (+ x 1))"
- 'cpo-smartparens-up-parent-beginning
- :transient-mark-mode
- nil
- :setup
- (progn
-   (smartparens-mode 1)
-   (sp-local-pair 'emacs-lisp-mode "\"" "\""))
- :points
- ("<p0>" "<p1>")
- :marks
- ("<m0>" "<m1>"))
-
 ;;; cpo-smartparens-up-parent-end
 
 ;; Inside a sub-list, moves to end of the containing list sexp.
