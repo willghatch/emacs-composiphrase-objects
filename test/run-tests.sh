@@ -78,6 +78,7 @@ mkdir -p "$DEPS_DIR"
 CARETTEST_HASH=747487aeca80b4ce70de113853ddcfbccde21c1b
 SMARTPARENS_HASH=82d2cf084a19b0c2c3812e0550721f8a61996056
 DASH_HASH=fb443e7a6e660ba849cafcd01021d9aac3ac6764
+GIT_GUTTER_HASH=3bdead17db7b84270c00e5a6b5ad02fa87ddd52e
 
 pin_repo() {
     local dir="$1" hash="$2"
@@ -105,6 +106,11 @@ if [ ! -d "$DEPS_DIR/dash" ]; then
     pin_repo "$DEPS_DIR/dash" "$DASH_HASH"
 fi
 
+if [ ! -d "$DEPS_DIR/git-gutter" ]; then
+    git clone https://github.com/emacsorphanage/git-gutter.git "$DEPS_DIR/git-gutter"
+    pin_repo "$DEPS_DIR/git-gutter" "$GIT_GUTTER_HASH"
+fi
+
 # Base emacs arguments: load paths and every library .el from the parent directory
 TEST_ARGS=(
     -q
@@ -113,6 +119,7 @@ TEST_ARGS=(
     -L "$DEPS_DIR/carettest"
     -L "$DEPS_DIR/dash"
     -L "$DEPS_DIR/smartparens"
+    -L "$DEPS_DIR/git-gutter"
 )
 
 shopt -s nullglob
