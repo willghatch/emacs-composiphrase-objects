@@ -4,23 +4,11 @@
 (require 'carettest-tesmut)
 (require 'carettest-tesmo)
 (require 'ert)
+(require 'test-cpo-helpers)
 
 ;; TODO - actually write a bunch of tests
 ;; TODO - maybe use smartparens testing infrastructure, it has a lot of convenience definitions.  They are probably mostly internal, but they are probably sufficiently stable.
 
-(defmacro should/region-equal (region-cons)
-  `(progn
-     (should (region-active-p))
-     (should (equal ,region-cons
-                    (cons (region-beginning) (region-end))))))
-(defmacro should/looking-at (at-string)
-  `(progn
-     (let* ((str ,at-string)
-            (result (looking-at-p str)))
-       (when (not result)
-         (message "Test failure, should look at: %s" str)
-         (message "actually looking at: %s" (buffer-substring (point) (min (point-max) (+ (point) 10)))))
-       (should result))))
 (ert-deftest test-expand-region-to-any-delimiter-after-last-child_smartparens ()
   (with-temp-buffer
     (insert "

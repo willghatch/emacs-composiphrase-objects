@@ -109,6 +109,7 @@ fi
 TEST_ARGS=(
     -q
     -L "$SCRIPT_DIR/.."
+    -L "$SCRIPT_DIR/core"
     -L "$DEPS_DIR/carettest"
     -L "$DEPS_DIR/dash"
     -L "$DEPS_DIR/smartparens"
