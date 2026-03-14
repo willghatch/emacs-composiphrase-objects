@@ -31,6 +31,18 @@ A wise quote.
  :setup (org-mode))
 
 (carettest-tesmo-test
+ test-osb-forward-beginning-from-first-to-second_touching
+ "<p0>#+begin_src python
+print('first')
+#+end_src
+<p1>#+begin_quote
+A wise quote.
+#+end_quote
+"
+ 'cpo-org-structure-block-forward-beginning
+ :setup (org-mode))
+
+(carettest-tesmo-test
  test-osb-forward-beginning-from-inside-block
  "#+begin_src python
 print<p0>('first')
@@ -386,6 +398,21 @@ content
  'cpo-org-structure-block-expand-region
  :setup (org-mode))
 
+(carettest-tesmo-test
+ test-osb-expand-region__abut_choose-right-target
+ ;; When two structures abut, point is both at the start of one and the end of another, but we want to select the one that point is at the start of.
+ "Some text before
+#+begin_src emacs-lisp
+(+ 1 2)
+#+end_src
+<p0><p1>#+begin_src emacs-lisp
+  (message \"hello\")
+#+end_src
+<m1>Some text after
+"
+ 'cpo-org-structure-block-expand-region
+ :setup (org-mode))
+
 ;; expand-region: position 'end puts point at end
 (carettest-tesmo-test
  test-osb-expand-region__position-end
@@ -395,7 +422,7 @@ content
 #+end_src
 <p1>Some text after
 "
- (lambda () (cpo-org-structure-block-expand-region nil :position 'end))
+ (lambda () (cpo-org-structure-block-expand-region :position 'end))
  :setup (org-mode))
 
 ;; expand-region-inner: position 'end puts point at end
@@ -407,7 +434,7 @@ content
 <p1>#+end_src
 Some text after
 "
- (lambda () (cpo-org-structure-block-expand-region-inner nil :position 'end))
+ (lambda () (cpo-org-structure-block-expand-region-inner :position 'end))
  :setup (org-mode))
 
 (provide 'test-cpo-org-structure-block)

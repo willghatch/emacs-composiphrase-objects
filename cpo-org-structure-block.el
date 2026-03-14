@@ -186,11 +186,12 @@ With numeric prefix COUNT, move forward that many blocks."
             (if end-pos
                 (goto-char end-pos)
               (forward-line 1))))
-        ;; If inside a block, skip past its end
-        (let ((bounds (save-excursion
-                        (cpo-org-structure-block--bounds))))
-          (when (and bounds (< (point) (cdr bounds)))
-            (goto-char (cdr bounds))))
+        ;; If inside a block (but not at the start of a begin line), skip past its end
+        (unless (and (bolp) (cpo-org-structure-block--on-begin-line-p))
+          (let ((bounds (save-excursion
+                          (cpo-org-structure-block--bounds))))
+            (when (and bounds (< (point) (cdr bounds)))
+              (goto-char (cdr bounds)))))
         ;; Search forward for the next begin line
         (if (re-search-forward cpo-org-structure-block--begin-re nil t)
             (progn
@@ -294,7 +295,7 @@ POSITION nil or \\='beginning puts point at beginning, \\='end puts point at end
     (goto-char (car bounds))
     (set-mark (cdr bounds))))
 
-(cl-defun cpo-org-structure-block-expand-region (&optional strict &key position)
+(cl-defun cpo-org-structure-block-expand-region (&key strict position)
   "Expand region to the bounds of the org structure block at point.
 When STRICT is non-nil, only expand if the new bounds are strictly larger
 than the current region.
@@ -314,7 +315,7 @@ at the beginning of the region, \\='end puts point at the end."
         (cpo-org-structure-block--set-region-with-position bounds position)
         (activate-mark)))))
 
-(cl-defun cpo-org-structure-block-expand-region-inner (&optional strict &key position)
+(cl-defun cpo-org-structure-block-expand-region-inner (&key strict position)
   "Expand region to the inner bounds of the org structure block at point.
 When STRICT is non-nil, only expand if the new bounds are strictly larger
 than the current region.
