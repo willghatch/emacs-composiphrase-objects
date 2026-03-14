@@ -295,6 +295,78 @@ It always moves to the FIRST sibling in the full sibling region, regardless of m
       (and (cpo-tree-walk--motion-moved (lambda () (cpo-indent-tree-down-to-first-child 1)))
            (cpo-indent-tree--cpo-indent-tree-forward-to-last-full-or-half-sibling)))))
 
+(defun cpo-indent-tree-down-to-first-body-child (num)
+  "Go down to the first child in the lowest (shallowest indentation) full-sibling region.
+For indent trees with half-siblings, this skips any deeper half-sibling
+groups and goes to the first sibling at the shallowest child indentation level.
+NUM is the number of times to descend (each time descending to the body children
+of the current node).
+For example, given:
+  root
+        deep1
+        deep2
+      mid1
+      mid2
+    shallow1
+    shallow2
+
+Starting at root, this goes to shallow1, not deep1."
+  (interactive "p")
+  (let ((times (abs num))
+        (index 0)
+        (ret-val t))
+    (while (and (< index times)
+                ret-val)
+      (if (not (cpo-indent-tree-down-to-first-child 1))
+          (setq ret-val nil)
+        ;; We are now at the first child.  Navigate to the last half-sibling
+        ;; region (lowest indentation), then go to its first full sibling.
+        (let ((keep-going t))
+          (while keep-going
+            (cpo-indent-tree-forward-to-last-full-sibling)
+            (if (cpo-indent-tree--forward-half-sibling)
+                nil ;; moved to next half-sibling region, keep going
+              (setq keep-going nil))))
+        ;; Now at some sibling in the last region; go to the first full sibling.
+        (cpo-indent-tree-backward-to-first-full-sibling))
+      (setq index (+ 1 index)))
+    ret-val))
+
+(defun cpo-indent-tree-down-to-last-body-child (num)
+  "Like `cpo-indent-tree-down-to-first-body-child' but go to the last sibling
+in the lowest full-sibling region."
+  (interactive "p")
+  (let ((times (abs num))
+        (index 0)
+        (ret-val t))
+    (while (and (< index times)
+                ret-val)
+      (if (not (cpo-indent-tree-down-to-first-body-child 1))
+          (setq ret-val nil)
+        (cpo-indent-tree-forward-to-last-full-sibling))
+      (setq index (+ 1 index)))
+    ret-val))
+
+(defun cpo-indent-tree-body-children-bounds (&optional anchor-point)
+  "Return the bounds of the body children region for the indent tree node at point.
+The body children are the children in the lowest (shallowest indentation)
+full-sibling region, which is the final group of full siblings after skipping
+any deeper half-sibling groups.
+Returns (beg . end) or nil."
+  (let ((anchor-point (or anchor-point (point))))
+    (save-mark-and-excursion
+      (goto-char anchor-point)
+      (if (not (cpo-indent-tree-down-to-first-body-child 1))
+          nil
+        (let ((left (line-beginning-position)))
+          (cpo-indent-tree-forward-to-last-full-sibling)
+          ;; Use the same right finalizer as the main tree
+          (end-of-line)
+          (when (not (eobp))
+            (forward-char 1))
+          (let ((right (point)))
+            (cons left right)))))))
+
 (defun cpo-indent-tree--get-indentation-region-for-line (&optional point)
   "Returns the region for indentation of line at point."
   (save-mark-and-excursion
@@ -394,6 +466,17 @@ It always moves to the FIRST sibling in the full sibling region, regardless of m
                                                          (forward-char 1))
                                                        (point))
  )
+
+;; Body-children region expansion.
+;; The "body children" are the final full-sibling group at the shallowest
+;; indentation level among a parent's children.  This skips any deeper
+;; half-sibling groups that precede them.
+(cpo-tree-walk--define-expand-region-funcs
+ :def-select-children-once cpo-indent-tree-region-to-body-children
+ :def-expand-region-to-children/ancestor-generation cpo-indent-tree-expand-region/body-children-region
+ :bounds-func 'cpo-indent-tree-body-children-bounds
+ :children-bounds-func 'cpo-indent-tree-body-children-bounds
+ :up-func (lambda () (cpo-indent-tree-up-to-parent 1)))
 
 ;; TODO - for things like python, there is already a variable that this should match, and it should generally be customizable.
 ;; TODO - also, it might be nice to just check for an existing indentation amount, especially for promoting to promote specifically to parent level.
@@ -605,6 +688,7 @@ takes the parent's indentation level."
   (repeatable-motion-define 'cpo-indent-tree-down-to-last-descendant nil)
   (repeatable-motion-define 'cpo-indent-tree-expand-region nil)
   (repeatable-motion-define 'cpo-indent-tree-expand-region/children-region nil)
+  (repeatable-motion-define 'cpo-indent-tree-expand-region/body-children-region nil)
   )
 
 (provide 'cpo-indent-tree)

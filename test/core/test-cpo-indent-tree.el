@@ -519,3 +519,124 @@ root
 <p>child2
 "
  :function 'cpo-indent-tree-raise)
+
+
+;;; Body children tests for indent-tree
+;;; The body children are the children in the lowest (shallowest) full-sibling
+;;; region, skipping any deeper half-sibling groups.
+
+;;; down-to-first-body-child: from root, goes to shallow1 (the shallowest half-sibling group)
+(carettest-tesmo-test test-indent-tree-down-to-first-body-child_basic
+                      "
+<p0>root
+      deep1
+      deep2
+    mid1
+    mid2
+  <p1>shallow1
+  shallow2
+"
+                      (lambda () (cpo-indent-tree-down-to-first-body-child 1)))
+
+;;; down-to-first-body-child: when no half-siblings, same as down-to-first-child
+(carettest-tesmo-test test-indent-tree-down-to-first-body-child_no-half-siblings
+                      "
+<p0>root
+  <p1>child1
+  child2
+  child3
+"
+                      (lambda () (cpo-indent-tree-down-to-first-body-child 1)))
+
+;;; down-to-first-body-child: with only two half-sibling levels
+(carettest-tesmo-test test-indent-tree-down-to-first-body-child_two-levels
+                      "
+<p0>root
+    deep1
+    deep2
+  <p1>shallow1
+  shallow2
+"
+                      (lambda () (cpo-indent-tree-down-to-first-body-child 1)))
+
+;;; down-to-last-body-child: from root, goes to shallow2 (last in shallowest group)
+(carettest-tesmo-test test-indent-tree-down-to-last-body-child_basic
+                      "
+<p0>root
+      deep1
+      deep2
+    mid1
+    mid2
+  shallow1
+  <p1>shallow2
+"
+                      (lambda () (cpo-indent-tree-down-to-last-body-child 1)))
+
+;;; body-children-bounds: returns the bounds of the shallowest full-sibling region
+(carettest-tesmo-test test-indent-tree-body-children-bounds_basic
+                      "
+<p0>root
+      deep1
+      deep2
+    mid1
+    mid2
+<p1>  shallow1
+  shallow2
+<m1>"
+                      (lambda ()
+                        (let ((bounds (cpo-indent-tree-body-children-bounds)))
+                          (should bounds)
+                          (goto-char (car bounds))
+                          (set-mark (cdr bounds))
+                          (activate-mark))))
+
+;;; body-children-bounds: when no half-siblings, returns all children
+(carettest-tesmo-test test-indent-tree-body-children-bounds_no-half-siblings
+                      "
+<p0>root
+<p1>  child1
+  child2
+  child3
+<m1>"
+                      (lambda ()
+                        (let ((bounds (cpo-indent-tree-body-children-bounds)))
+                          (should bounds)
+                          (goto-char (car bounds))
+                          (set-mark (cdr bounds))
+                          (activate-mark))))
+
+;;; body-children-bounds: leaf node returns nil
+(carettest-tesmo-test test-indent-tree-body-children-bounds_leaf
+                      "
+root
+  <p0><p1>child1
+  child2
+"
+                      (lambda ()
+                        (should-not (cpo-indent-tree-body-children-bounds))))
+
+;;; region-to-body-children: selects body children region
+(carettest-tesmo-test test-indent-tree-region-to-body-children_basic
+                      "
+<p0>root
+      deep1
+      deep2
+    mid1
+    mid2
+<p1>  shallow1
+  shallow2
+<m1>"
+                      (lambda () (cpo-indent-tree-region-to-body-children)))
+
+;;; expand-region/body-children-region: works from within a child node
+(carettest-tesmo-test test-indent-tree-expand-region-body-children_from-child
+                      "
+root
+      deep1
+      deep2
+    <p0>mid1
+    mid2
+<p1>  shallow1
+  shallow2
+<m1>"
+                      (lambda () (cpo-indent-tree-expand-region/body-children-region)))
