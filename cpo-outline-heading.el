@@ -222,6 +222,28 @@ concerned with just one heading and not tree shape.
       (set-mark (cdr bounds))
       (activate-mark))))
 
+;;; Promote/demote functions
+
+(defun cpo-outline-heading-promote ()
+  "Promote the current heading by one level (decrease depth).
+Works even when point is not on the heading line by using
+`save-excursion' to navigate to the heading first."
+  (interactive)
+  (require 'org)
+  (save-excursion
+    (cpo-outline-heading--goto-current-heading)
+    (org-do-promote)))
+
+(defun cpo-outline-heading-demote ()
+  "Demote the current heading by one level (increase depth).
+Works even when point is not on the heading line by using
+`save-excursion' to navigate to the heading first."
+  (interactive)
+  (require 'org)
+  (save-excursion
+    (cpo-outline-heading--goto-current-heading)
+    (org-do-demote)))
+
 ;;; Repeatable motion integration
 
 (with-eval-after-load 'repeatable-motion

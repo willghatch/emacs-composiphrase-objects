@@ -761,4 +761,121 @@ Sub body text.
     (forward-line 1)
     (should-not (cpo-outline-heading--on-heading-p))))
 
+;;; Promote/demote tests
+
+(carettest-tesmut-test
+ test-heading-demote_on-heading
+ "<p>* Heading One
+Some body text here.
+"
+ "<p>** Heading One
+Some body text here.
+"
+ 'cpo-outline-heading-demote
+ :setup (org-mode))
+
+(carettest-tesmut-test
+ test-heading-demote_from-body
+ "* Heading One
+Some body <p>text here.
+More body text.
+* Heading Two
+"
+ "** Heading One
+Some body <p>text here.
+More body text.
+* Heading Two
+"
+ 'cpo-outline-heading-demote
+ :setup (org-mode))
+
+(carettest-tesmut-test
+ test-heading-demote_nested
+ "* Heading One
+<p>** Sub Heading
+Sub body text.
+* Heading Two
+"
+ "* Heading One
+<p>*** Sub Heading
+Sub body text.
+* Heading Two
+"
+ 'cpo-outline-heading-demote
+ :setup (org-mode))
+
+(carettest-tesmut-test
+ test-heading-promote_on-heading
+ "<p>** Heading One
+Some body text here.
+"
+ "<p>* Heading One
+Some body text here.
+"
+ 'cpo-outline-heading-promote
+ :setup (org-mode))
+
+(carettest-tesmut-test
+ test-heading-promote_from-body
+ "** Heading One
+Some body <p>text here.
+More body text.
+* Heading Two
+"
+ "* Heading One
+Some body <p>text here.
+More body text.
+* Heading Two
+"
+ 'cpo-outline-heading-promote
+ :setup (org-mode))
+
+(carettest-tesmut-test
+ test-heading-promote_nested
+ "* Heading One
+<p>*** Sub Heading
+Sub body text.
+* Heading Two
+"
+ "* Heading One
+<p>** Sub Heading
+Sub body text.
+* Heading Two
+"
+ 'cpo-outline-heading-promote
+ :setup (org-mode))
+
+;;; Point preservation tests for promote/demote
+
+(ert-deftest test-heading-promote-preserves-point-in-body ()
+  "Promote should keep point at the same text when point is in body text."
+  (with-temp-buffer
+    (org-mode)
+    (insert "** Heading\nSome body text here.\n* Next\n")
+    (goto-char (point-min))
+    (forward-line 1)
+    (forward-char 5)
+    (let ((original-column (current-column))
+          (original-line (line-number-at-pos)))
+      (cpo-outline-heading-promote)
+      ;; Point should be on the same line and column (the body text does not
+      ;; move relative to the start of its own line)
+      (should (= (current-column) original-column))
+      (should (= (line-number-at-pos) original-line)))))
+
+(ert-deftest test-heading-demote-preserves-point-in-body ()
+  "Demote should keep point at the same text when point is in body text."
+  (with-temp-buffer
+    (org-mode)
+    (insert "* Heading\nSome body text here.\n* Next\n")
+    (goto-char (point-min))
+    (forward-line 1)
+    (forward-char 5)
+    (let ((original-column (current-column))
+          (original-line (line-number-at-pos)))
+      (cpo-outline-heading-demote)
+      ;; Point should be on the same line and column
+      (should (= (current-column) original-column))
+      (should (= (line-number-at-pos) original-line)))))
+
 ;;; test-cpo-outline-heading.el ends here
