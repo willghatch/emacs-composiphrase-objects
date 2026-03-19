@@ -314,6 +314,136 @@ child takes the parent's heading level."
             (insert adjusted-text))
           (goto-char (car parent-bounds)))))))
 
+;;; Forward/backward to beginning/end of outline tree nodes.
+;;; These movements respect tree structure -- they only move between
+;;; sibling nodes (headings at the same level under the same parent),
+;;; not to parent or uncle nodes.
+;;; An outline tree node consists of a heading line plus its body text
+;;; (everything up to the next heading of the same or higher level).
+;;; The "beginning" of a node is the start of its heading line.
+;;; The "end" of a node is the last position before the next heading
+;;; (or end of buffer).
+
+(defun cpo-outline--at-heading-beginning-p ()
+  "Return non-nil if point is at the beginning of an outline heading line."
+  (and (bolp)
+       (looking-at-p outline-regexp)))
+
+(defun cpo-outline--tree-forward-beginning-single ()
+  "Move forward to the beginning of the next sibling outline tree node.
+Only moves to a sibling at the same outline level under the same
+parent, not to child or uncle nodes.  Return non-nil if moved."
+  (let ((start (point)))
+    (ignore-errors (outline-back-to-heading t))
+    (if (ignore-errors (outline-forward-same-level 1) t)
+        (not (= start (point)))
+      (goto-char start)
+      nil)))
+
+(defun cpo-outline--tree-backward-beginning-single ()
+  "Move backward to the beginning of the current or previous sibling outline tree node.
+If point is inside a heading's content (on the heading line past its
+beginning, or in the body text), move to the beginning of that heading.
+If already at the beginning of a heading, move to the beginning of the
+previous sibling heading (same level under same parent).
+Return non-nil if moved."
+  (let ((start (point)))
+    (cond
+     ;; At the beginning of a heading -- go to previous sibling heading.
+     ((cpo-outline--at-heading-beginning-p)
+      (if (ignore-errors (outline-backward-same-level 1) t)
+          (not (= start (point)))
+        (goto-char start)
+        nil))
+     ;; Somewhere inside a node -- go to its heading beginning.
+     (t
+      (ignore-errors (outline-back-to-heading t))
+      (not (= start (point)))))))
+
+(defun cpo-outline--tree-forward-end-single ()
+  "Move forward to the end of the current or next sibling outline tree node.
+If point is inside a node and not at its end, move to the end of that
+node.  If already at the end, move to the end of the next sibling node.
+The end of a node is the position just before the next heading line
+\(or end of buffer).  Return non-nil if moved."
+  (let ((start (point))
+        (bounds (cpo-outline-tree-bounds (point))))
+    (if (and bounds (< (point) (cdr bounds)))
+        ;; Inside a node and not at its end -- go to end.
+        (progn
+          (goto-char (cdr bounds))
+          (not (= start (point))))
+      ;; At or past the end -- move to next sibling node's end.
+      (when (cpo-outline--tree-forward-beginning-single)
+        (let ((next-bounds (cpo-outline-tree-bounds (point))))
+          (if next-bounds
+              (progn
+                (goto-char (cdr next-bounds))
+                (not (= start (point))))
+            (goto-char start)
+            nil))))))
+
+(defun cpo-outline--tree-backward-end-single ()
+  "Move backward to the end of the previous sibling outline tree node.
+Return non-nil if moved."
+  (let ((start (point)))
+    ;; Go to the beginning of the current heading first.
+    (ignore-errors (outline-back-to-heading t))
+    (if (ignore-errors (outline-backward-same-level 1) t)
+        ;; Found previous sibling -- go to its tree end.
+        (let ((bounds (cpo-outline-tree-bounds (point))))
+          (if bounds
+              (progn
+                (goto-char (cdr bounds))
+                (not (= start (point))))
+            (goto-char start)
+            nil))
+      ;; No previous sibling.
+      (goto-char start)
+      nil)))
+
+(defun cpo-outline-tree-forward-beginning (&optional count)
+  "Move forward to the beginning of the next sibling outline tree node, COUNT times.
+Only moves to siblings (same level under same parent), respecting
+tree structure.  If COUNT is negative, move backward."
+  (interactive "p")
+  (let* ((count (or count 1))
+         (fwd (<= 0 count))
+         (count (abs count)))
+    (dotimes (_i count)
+      (if fwd
+          (cpo-outline--tree-forward-beginning-single)
+        (cpo-outline--tree-backward-beginning-single)))))
+
+(defun cpo-outline-tree-backward-beginning (&optional count)
+  "Move backward to the beginning of the current or previous sibling outline tree node, COUNT times.
+If point is inside a heading's content, move to the beginning of that
+heading.  If already at the beginning, move to the previous sibling.
+Only moves to siblings (same level under same parent), respecting
+tree structure.  If COUNT is negative, move forward."
+  (interactive "p")
+  (cpo-outline-tree-forward-beginning (- (or count 1))))
+
+(defun cpo-outline-tree-forward-end (&optional count)
+  "Move forward to the end of a sibling outline tree node, COUNT times.
+Only moves to siblings (same level under same parent), respecting
+tree structure.  If COUNT is negative, move backward."
+  (interactive "p")
+  (let* ((count (or count 1))
+         (fwd (<= 0 count))
+         (count (abs count)))
+    (dotimes (_i count)
+      (if fwd
+          (cpo-outline--tree-forward-end-single)
+        (cpo-outline--tree-backward-end-single)))))
+
+(defun cpo-outline-tree-backward-end (&optional count)
+  "Move backward to the end of the previous sibling outline tree node, COUNT times.
+Only moves to siblings (same level under same parent), respecting
+tree structure.  If COUNT is negative, move forward."
+  (interactive "p")
+  (cpo-outline-tree-forward-end (- (or count 1))))
+
 (with-eval-after-load 'repeatable-motion
   (repeatable-motion-define-pair 'outline-forward-same-level 'outline-backward-same-level)
   (repeatable-motion-define-pair 'cpo-outline-forward-full-sibling 'cpo-outline-backward-full-sibling)
@@ -324,6 +454,8 @@ child takes the parent's heading level."
   (repeatable-motion-define-pair 'cpo-outline-forward-half-or-full-sibling 'cpo-outline-backward-half-or-full-sibling)
   (repeatable-motion-define 'cpo-outline-expand-region nil)
   (repeatable-motion-define 'cpo-outline-expand-region/children-region nil)
+  (repeatable-motion-define-pair 'cpo-outline-tree-forward-beginning 'cpo-outline-tree-backward-beginning)
+  (repeatable-motion-define-pair 'cpo-outline-tree-forward-end 'cpo-outline-tree-backward-end)
   )
 
 
