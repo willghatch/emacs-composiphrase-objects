@@ -288,14 +288,28 @@ Child body.
 
 ;;; ---- backward-end tests ----
 
-;;; From beginning of second sibling -> end of first sibling's subtree
 (carettest-tesmo-test
- test-outline-tree-backward-end_from-sibling-to-prev-end
+ test-outline-tree-backward-end_from-sibling-to-prev-end_no-more
+ ;; This one is a no-op because it can't go backward to an ending that respects the tree shape.
  "* Heading One
 Some body text.
 ** Child One
 Child one body.
 <p1><p0>** Child Two
+Child two body.
+"
+ 'cpo-outline-tree-backward-end
+ :setup (org-mode))
+
+(carettest-tesmo-test
+ test-outline-tree-backward-end_from-sibling-to-prev-end_yes-more
+ ;; This one has room to move backward to the end of an outline object that respects the tree shape.
+ "* Heading One
+Some body text.
+** Child Zero
+<p1>** Child One
+Child one body.
+<p0>** Child Two
 Child two body.
 "
  'cpo-outline-tree-backward-end
