@@ -435,3 +435,142 @@ Grandchild body.
 "
  :function 'cpo-outline-raise
  :setup (org-mode))
+
+
+;;; Transpose tests
+
+;;; Forward half-or-full sibling at root level (regression test for the bug
+;;; where parent-level was nil for root headings, causing forward movement to
+;;; fail silently)
+
+;;; cpo-outline-forward-half-or-full-sibling at root level
+(carettest-tesmo-test
+ test-outline-forward-half-or-full-sibling_root-level-heading1-to-heading2
+ "<p0>* heading1
+<p1>* heading2
+* heading3
+"
+ 'cpo-outline-forward-half-or-full-sibling
+ :setup (org-mode))
+
+(carettest-tesmo-test
+ test-outline-forward-half-or-full-sibling_root-level-heading2-to-heading3
+ "* heading1
+<p0>* heading2
+<p1>* heading3
+"
+ 'cpo-outline-forward-half-or-full-sibling
+ :setup (org-mode))
+
+;;; Backward half-or-full sibling at root level
+(carettest-tesmo-test
+ test-outline-backward-half-or-full-sibling_root-level-heading3-to-heading2
+ "* heading1
+<p1>* heading2
+<p0>* heading3
+"
+ 'cpo-outline-backward-half-or-full-sibling
+ :setup (org-mode))
+
+;;; Transpose forward at root level: the core bug fix
+(carettest-tesmut-test
+ test-outline-transpose-sibling-forward_root-level-basic
+ :before
+ "<p>* heading1
+** child1
+* heading2
+** child2
+* heading3
+"
+ :after
+ "* heading2
+** child2
+<p>* heading1
+** child1
+* heading3
+"
+ :function 'cpo-outline-transpose-sibling-forward
+ :setup (org-mode))
+
+;;; Transpose forward at root level: last heading doesn't move
+(carettest-tesmut-test
+ test-outline-transpose-sibling-forward_root-level-last-stays
+ :before
+ "* heading1
+* <p>heading2
+"
+ :after
+ "* heading1
+* <p>heading2
+"
+ :function 'cpo-outline-transpose-sibling-forward
+ :setup (org-mode))
+
+;;; Transpose backward at root level
+(carettest-tesmut-test
+ test-outline-transpose-sibling-backward_root-level-basic
+ :before
+ "* heading1
+** child1
+<p>* heading2
+** child2
+* heading3
+"
+ :after
+ "<p>* heading2
+** child2
+* heading1
+** child1
+* heading3
+"
+ :function 'cpo-outline-transpose-sibling-backward
+ :setup (org-mode))
+
+;;; Transpose forward: non-root headings continue to work
+(carettest-tesmut-test
+ test-outline-transpose-sibling-forward_non-root
+ :before
+ "* root
+<p>** child1
+*** grandchild1
+** child2
+"
+ :after
+ "* root
+** child2
+<p>** child1
+*** grandchild1
+"
+ :function 'cpo-outline-transpose-sibling-forward
+ :setup (org-mode))
+
+;;; Transpose backward: non-root headings continue to work
+(carettest-tesmut-test
+ test-outline-transpose-sibling-backward_non-root
+ :before
+ "* root
+** child1
+<p>** child2
+*** grandchild2
+"
+ :after
+ "* root
+<p>** child2
+*** grandchild2
+** child1
+"
+ :function 'cpo-outline-transpose-sibling-backward
+ :setup (org-mode))
+
+;;; Forward half-or-full sibling at root level with subtrees (ensures bounds
+;;; computation is correct - point should land at the heading, not inside body)
+(carettest-tesmo-test
+ test-outline-forward-half-or-full-sibling_root-level-with-body
+ "<p0>* heading1
+Some body text.
+** child under heading1
+<p1>* heading2
+Some body text under heading2.
+"
+ 'cpo-outline-forward-half-or-full-sibling
+ :setup (org-mode))

@@ -110,17 +110,23 @@ This is useful when finishing a heading and wanting to start writing something a
 (defun cpo-outline--forward-half-or-full-sibling-single (&optional half-sibling-only)
   (let ((start-point (point))
         (start-level (org-current-level))
-        (parent-level (save-mark-and-excursion
-                        (and (ignore-errors (outline-up-heading 1))
-                             (org-current-level))))
+        ;; Use 0 as a sentinel for root headings with no parent, so that the
+        ;; logic below works uniformly: root-level headings (level 1 with no
+        ;; parent) can still reach their forward siblings.
+        (parent-level (or (save-mark-and-excursion
+                            (and (ignore-errors (outline-up-heading 1))
+                                 (org-current-level)))
+                          0))
         (cur-level nil)
         (end-point nil))
     (and
-     parent-level
      (save-mark-and-excursion
        (outline-back-to-heading)
-       (while (and (cpo-tree-walk--motion-moved
-                    (lambda () (ignore-errors (outline-next-heading))))
+       ;; Use the return value of outline-next-heading directly as the loop
+       ;; condition: it returns the new position on success, nil on failure.
+       ;; This avoids treating an outline-next-heading that moves to point-max
+       ;; (without finding a real heading) as a successful move.
+       (while (and (ignore-errors (outline-next-heading))
                    (setq cur-level (org-current-level))
                    (setq end-point (point))
                    (and cur-level (< start-level cur-level)))
@@ -130,21 +136,29 @@ This is useful when finishing a heading and wanting to start writing something a
       ((equal cur-level start-level)
        (when (not half-sibling-only)
          (goto-char end-point)))
-      ((< parent-level cur-level start-level)
+      ((and cur-level (< parent-level cur-level start-level))
        (goto-char end-point))
       (t nil)))))
 
 (defun cpo-outline--backward-half-or-full-sibling-single (&optional half-sibling-only)
   (let ((start-point (point))
         (start-level (org-current-level))
-        (parent-level (save-mark-and-excursion
-                        (ignore-errors (outline-up-heading 1))
-                        (org-current-level)))
+        ;; Use 0 as a sentinel for root headings with no parent, so that the
+        ;; logic below works uniformly: root-level headings (level 1 with no
+        ;; parent) can still reach their backward siblings.
+        ;; Note: unlike the forward function, the naive code here used to call
+        ;; (org-current-level) unconditionally after (outline-up-heading 1),
+        ;; which would return the current heading's level on failure rather than
+        ;; nil.  This caused it to use start-level as parent-level, breaking
+        ;; backward sibling movement at root level.
+        (parent-level (or (save-mark-and-excursion
+                            (and (ignore-errors (outline-up-heading 1))
+                                 (org-current-level)))
+                          0))
         (keep-going t)
         (min-level nil)
         (min-level-point nil))
     (and
-     parent-level
      (save-mark-and-excursion
        (outline-back-to-heading)
        (while (and keep-going
