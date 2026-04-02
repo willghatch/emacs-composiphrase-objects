@@ -399,21 +399,35 @@ The end of a node is the position just before the next heading line
 
 (defun cpo-outline--tree-backward-end-single ()
   "Move backward to the end of the previous sibling outline tree node.
-Return non-nil if moved."
-  (let ((start (point)))
-    ;; Go to the beginning of the current heading first.
-    (ignore-errors (outline-back-to-heading t))
-    (if (ignore-errors (outline-backward-same-level 1) t)
-        ;; Found previous sibling -- go to its tree end.
-        (let ((bounds (cpo-outline-tree-bounds (point))))
-          (if bounds
-              (progn
-                (goto-char (cdr bounds))
-                (not (= start (point))))
-            (goto-char start)
-            nil))
-      ;; No previous sibling.
-      (goto-char start)
+Return non-nil if moved.
+When the immediate previous sibling\'s subtree end equals the current
+position (which happens when point is at the beginning of a heading,
+since that is also the end boundary of the prior sibling), keep
+stepping backward through siblings until a sibling with a strictly
+earlier end is found, or no more siblings remain."
+  (let ((start (point))
+        (result-point nil))
+    ;; Go to the beginning of the current heading first, then walk backward
+    ;; through siblings looking for one whose subtree end is before start.
+    (save-excursion
+      (ignore-errors (outline-back-to-heading t))
+      (let ((keep-going t))
+        (while (and keep-going
+                    (ignore-errors (outline-backward-same-level 1) t)
+                    (not (= (point) start)))
+          (let ((bounds (cpo-outline-tree-bounds (point))))
+            (if bounds
+                (let ((end-pos (cdr bounds)))
+                  (if (< end-pos start)
+                      ;; Found a sibling whose end is strictly before start.
+                      (progn
+                        (setq result-point end-pos)
+                        (setq keep-going nil))
+                    ;; This sibling\'s end is at or after start -- keep going.
+                    nil))
+              (setq keep-going nil))))))
+    (if result-point
+        (progn (goto-char result-point) t)
       nil)))
 
 (defun cpo-outline-tree-forward-beginning (&optional count)
