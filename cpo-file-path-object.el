@@ -83,7 +83,7 @@ full enclosing path /foo/bar."
         (goto-char pos)
         (when (and (looking-at regexp)
                    (<= (match-beginning 0) orig)
-                   (< orig (match-end 0)))
+                   (<= orig (match-end 0)))
           ;; This match spans point.
           ;; Since we're scanning backward, earlier positions give
           ;; earlier starts, so always update result.
