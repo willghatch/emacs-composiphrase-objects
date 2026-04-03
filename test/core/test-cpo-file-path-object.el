@@ -47,6 +47,15 @@
  :points ("<p0>" "<p1>")
  :marks ("<m0>" "<m1>"))
 
+
+(carettest-tesmo-test
+ test-file-path-object-explicit-expand-region__dot-slash-point-at-end
+ "Run <p1>./script.sh<p0><m1> now."
+ 'cpo-expand-region-to-cpo-file-path-object-explicit
+ :transient-mark-mode t
+ :points ("<p0>" "<p1>")
+ :marks ("<m0>" "<m1>"))
+
 ;; Absolute path at start of line
 (carettest-tesmo-test
  test-file-path-object-explicit-expand-region__absolute-path-at-line-start
@@ -76,6 +85,14 @@ some other text"
 (carettest-tesmo-test
  test-file-path-object-expand-region__plain-word
  "hello <p1>wor<p0>ld<m1> there"
+ 'cpo-expand-region-to-cpo-file-path-object
+ :transient-mark-mode t
+ :points ("<p0>" "<p1>")
+ :marks ("<m0>" "<m1>"))
+
+(carettest-tesmo-test
+ test-file-path-object-expand-region__plain-word_at-end
+ "hello <p1>world<p0><m1> there"
  'cpo-expand-region-to-cpo-file-path-object
  :transient-mark-mode t
  :points ("<p0>" "<p1>")
