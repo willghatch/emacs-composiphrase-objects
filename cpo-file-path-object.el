@@ -61,6 +61,10 @@
   "[^][ \t\n\r\f'\"\\`(){}]+"
   "Regexp for any non-whitespace/non-bounding token (bare file-path variant).")
 
+(defun cpo-file-path-object--boundary-char-p (char)
+  "Return non-nil when CHAR is a file-path boundary character."
+  (memq char '(?\s ?\t ?\n ?\r ?\f ?\' ?\" ?\` ?\( ?\) ?\[ ?\] ?\{ ?\})))
+
 ;;;;;
 ;; Bounds-at-point functions
 
@@ -114,13 +118,15 @@ Matches paths beginning with /, ./, or ../."
         (end-point nil)
         (regexp cpo-file-path-object--prefixed-regexp))
     (save-mark-and-excursion
-      (let ((success (re-search-forward regexp nil t)))
-        ;; If we matched starting at point, skip past it and search again.
-        (when (and success (equal start-point (match-beginning 0)))
-          (forward-char 1)
-          (setq success (re-search-forward regexp nil t)))
-        (when success
-          (setq end-point (match-beginning 0)))))
+      (while (and (not end-point)
+                  (re-search-forward regexp nil t))
+        (let ((match-start (match-beginning 0)))
+          (if (and (not (equal match-start start-point))
+                   (cpo-file-path-object--boundary-char-p (char-before match-start)))
+              (setq end-point match-start)
+            ;; Skip the whole enclosing token and keep looking.  The prefixed
+            ;; regexp can match embedded paths like --prefix=/usr/local.
+            (goto-char (match-end 0))))))
     (when end-point (goto-char end-point))))
 
 (defun cpo-file-path-object--backward-beginning ()
@@ -190,10 +196,24 @@ slash (e.g. it finds /foo/bar not /bar in the middle of /foo/bar)."
 
 (defun cpo-file-path-object--bare-backward-beginning ()
   "Move backward to the beginning of the previous bare non-whitespace token."
-  (let* ((regexp cpo-file-path-object--bare-regexp)
-         (success (re-search-backward regexp nil t)))
-    (when success
-      (goto-char (match-beginning 0)))))
+  (let ((start-point (point))
+        (found-point nil))
+    (save-mark-and-excursion
+      (let ((bounds (cpo-file-path-object--bare-bounds-at-point)))
+        (cond
+         ;; If point is inside a token, jump to that token's beginning.
+         ((and bounds (< (car bounds) start-point))
+          (setq found-point (car bounds)))
+         ;; Otherwise, step left until we find the previous token.
+         (t
+          (while (and (not found-point)
+                      (> (point) (point-min)))
+            (backward-char 1)
+            (setq bounds (cpo-file-path-object--bare-bounds-at-point))
+            (when bounds
+              (setq found-point (car bounds))))))))
+    (when found-point
+      (goto-char found-point))))
 
 ;;;;;
 ;; Public movement commands -- prefixed variant
