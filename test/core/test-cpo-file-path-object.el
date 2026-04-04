@@ -152,6 +152,36 @@ some other text"
  :transient-mark-mode t
  :points ("<p0>" "<p1>"))
 
+
+;; backward to beginning with the normal version
+(carettest-tesmo-test
+ test-file-path-object-backward-beginning
+ "then <p1>baz/q<p0>uux.el."
+ 'cpo-backward-cpo-file-path-object-beginning
+ :transient-mark-mode t
+ :points ("<p0>" "<p1>"))
+
+(carettest-tesmo-test
+ test-file-path-object-backward-beginning-2
+ "then <p1>baz/quux.el <p0>aoeu."
+ 'cpo-backward-cpo-file-path-object-beginning
+ :transient-mark-mode t
+ :points ("<p0>" "<p1>"))
+
+(carettest-tesmo-test
+ test-file-path-object-backward-beginning-3
+ "then <p1>/baz/quux.el <p0>aoeu."
+ 'cpo-backward-cpo-file-path-object-beginning
+ :transient-mark-mode t
+ :points ("<p0>" "<p1>"))
+
+(carettest-tesmo-test
+ test-file-path-object-backward-beginning-4
+ "then <p1>../baz/quux.el <p0>aoeu."
+ 'cpo-backward-cpo-file-path-object-beginning
+ :transient-mark-mode t
+ :points ("<p0>" "<p1>"))
+
 ;;; ===================================================================
 ;;; Tests for expand-region with position argument
 ;;; ===================================================================
