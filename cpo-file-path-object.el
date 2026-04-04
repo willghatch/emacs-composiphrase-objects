@@ -418,6 +418,28 @@ If COUNT is negative, move backward."
 (cpo-text-object-stuff--def-expand-region-to-thing cpo-file-path-object)
 
 ;;;;;
+;; Transposition -- explicit (prefixed) variant
+
+(cpo-text-object-stuff--define-transpose-funcs
+ cpo-transpose-cpo-file-path-object-explicit-backward
+ cpo-transpose-cpo-file-path-object-explicit-forward
+ 'cpo-file-path-object--bounds-at-point
+ 'cpo-backward-cpo-file-path-object-explicit-beginning
+ 'cpo-forward-cpo-file-path-object-explicit-beginning
+ )
+
+;;;;;
+;; Transposition -- bare (non-explicit) variant
+
+(cpo-text-object-stuff--define-transpose-funcs
+ cpo-transpose-cpo-file-path-object-backward
+ cpo-transpose-cpo-file-path-object-forward
+ 'cpo-file-path-object--bare-bounds-at-point
+ 'cpo-backward-cpo-file-path-object-beginning
+ 'cpo-forward-cpo-file-path-object-beginning
+ )
+
+;;;;;
 ;; Repeatable motion integration
 
 (with-eval-after-load 'repeatable-motion
