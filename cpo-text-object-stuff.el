@@ -415,6 +415,7 @@ Returns the new position information as (new-bounds-1 . new-bounds-2)."
 (cpo-text-object-stuff--def-move-thing symbol)
 (cpo-text-object-stuff--def-transpose-thing symbol)
 (cpo-text-object-stuff--def-expand-region-to-thing symbol)
+
 (cpo-text-object-stuff--def-move-thing sentence)
 (cpo-text-object-stuff--def-transpose-thing sentence)
 (cpo-text-object-stuff--def-expand-region-to-thing sentence)

@@ -5,6 +5,43 @@
 
 (require 'carettest-tesmo)
 (require 'carettest-tesmut)
+(require 'cpo-text-object-stuff-symbol-variants)
+
+;; The native symbol object changes with the mode's syntax table.  These tests
+;; pin down the elisp-like and C-like variants so they keep their intended
+;; boundaries across different modes.
+(carettest-tesmo-test
+ test-misc-elisp-like-symbol-forward-end--c-mode
+ "alpha fo<p0>o-bar_baz<p1> omega"
+ 'cpo-forward-elisp-like-symbol-end
+ :setup (c-mode)
+ :transient-mark-mode t
+ :points ("<p0>" "<p1>"))
+
+(carettest-tesmo-test
+ test-misc-elisp-like-symbol-forward-end--emacs-lisp-mode
+ "alpha fo<p0>o-bar_baz<p1> omega"
+ 'cpo-forward-elisp-like-symbol-end
+ :setup (emacs-lisp-mode)
+ :transient-mark-mode t
+ :points ("<p0>" "<p1>"))
+
+;; C-like symbols split at hyphens, but keep underscores together.
+(carettest-tesmo-test
+ test-misc-c-like-symbol-forward-end--c-mode
+ "alpha fo<p0>o<p1>-bar_baz omega"
+ 'cpo-forward-c-like-symbol-end
+ :setup (c-mode)
+ :transient-mark-mode t
+ :points ("<p0>" "<p1>"))
+
+(carettest-tesmo-test
+ test-misc-c-like-symbol-forward-end--emacs-lisp-mode
+ "alpha fo<p0>o<p1>-bar_baz omega"
+ 'cpo-forward-c-like-symbol-end
+ :setup (emacs-lisp-mode)
+ :transient-mark-mode t
+ :points ("<p0>" "<p1>"))
 
 (carettest-tesmo-test
  test-vi-like-movements-forward-cpo-vi-like-word-beginning_end-of-word--fundamental-mode

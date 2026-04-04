@@ -43,6 +43,8 @@ So for these objects, I've mostly added those explicit movements, plus selection
 - paragraph
 - line
 - symbol
+- elisp-like-symbol (IE `symbol` but using elisp symbol parsing no matter the current major-mode)
+- c-like-symbol (IE `symbol` but using c-mode symbol parsing no matter the current major-mode)
 
 It also includes a hacky, bad, and buggy implementation of a more vi-like word.
 I've been using it for a little while, and I'm undecided as to whether I will keep using it and fix it or switch to using the normal emacs word definition...
