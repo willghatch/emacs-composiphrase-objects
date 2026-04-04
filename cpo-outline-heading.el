@@ -147,7 +147,7 @@ This is the text after the asterisks and space, up to end of line.
 Returns nil if not on or near a heading."
   (save-excursion
     (when (cpo-outline-heading--goto-current-heading)
-      (when (looking-at "\\*+ ")
+      (when (looking-at cpo-outline-heading--regexp)
         (let ((beg (match-end 0)))
           (end-of-line)
           (cons beg (point)))))))
@@ -158,7 +158,7 @@ This includes the asterisks and trailing space.
 Returns nil if not on or near a heading."
   (save-excursion
     (when (cpo-outline-heading--goto-current-heading)
-      (when (looking-at "\\*+ ")
+      (when (looking-at cpo-outline-heading--regexp)
         (cons (match-beginning 0) (match-end 0))))))
 
 (defun cpo-outline-heading--body-bounds ()
@@ -229,20 +229,34 @@ concerned with just one heading and not tree shape.
 Works even when point is not on the heading line by using
 `save-excursion' to navigate to the heading first."
   (interactive)
-  (require 'org)
   (save-excursion
-    (cpo-outline-heading--goto-current-heading)
-    (org-do-promote)))
+    (when (cpo-outline-heading--goto-current-heading)
+      (beginning-of-line)
+      (when (looking-at cpo-outline-heading--regexp)
+        (let* ((prefix (match-string-no-properties 0))
+               (prefix-char (aref prefix 0))
+               (level (1- (length prefix))))
+          (when (<= level 1)
+            (user-error "Cannot promote to level 0.  UNDO to recover if necessary"))
+          (replace-match
+           (concat (make-string (1- level) prefix-char) " ")
+           t t nil 0))))))
 
 (defun cpo-outline-heading-demote ()
   "Demote the current heading by one level (increase depth).
 Works even when point is not on the heading line by using
 `save-excursion' to navigate to the heading first."
   (interactive)
-  (require 'org)
   (save-excursion
-    (cpo-outline-heading--goto-current-heading)
-    (org-do-demote)))
+    (when (cpo-outline-heading--goto-current-heading)
+      (beginning-of-line)
+      (when (looking-at cpo-outline-heading--regexp)
+        (let* ((prefix (match-string-no-properties 0))
+               (prefix-char (aref prefix 0))
+               (level (1- (length prefix))))
+          (replace-match
+           (concat (make-string (1+ level) prefix-char) " ")
+           t t nil 0))))))
 
 ;;; Repeatable motion integration
 

@@ -2,20 +2,50 @@
 (require 'cpo-tree-walk)
 (require 'outline)
 
+(defun cpo-outline--current-level ()
+  "Return outline level at point, compatible with both org-mode and outline-minor-mode."
+  (save-mark-and-excursion
+    (outline-back-to-heading t)
+    (funcall outline-level)))
+
+(defun cpo-outline--subtree-text-with-adjusted-levels (bounds level-diff)
+  "Return subtree text inside BOUNDS with all heading levels adjusted by LEVEL-DIFF."
+  (cpo-outline--adjust-heading-levels
+   (buffer-substring-no-properties (car bounds) (cdr bounds))
+   level-diff))
+
 (defun cpo-outline-forward-slurp-heading ()
   (interactive)
-  (require 'org)
   (save-mark-and-excursion
-    (when (cpo-tree-walk--motion-moved
-           (lambda () (ignore-errors (outline-forward-same-level 1))))
-      (org-demote-subtree))))
+    (let ((current-bounds (cpo-outline-tree-bounds (point))))
+      (when (and current-bounds
+                 (cpo-tree-walk--motion-moved
+                  (lambda () (ignore-errors (outline-forward-same-level 1)))))
+        (let ((sibling-bounds (cpo-outline-tree-bounds (point))))
+          (when sibling-bounds
+            (let ((insert-marker (copy-marker (cdr current-bounds)))
+                  (sibling-text (cpo-outline--subtree-text-with-adjusted-levels sibling-bounds -1)))
+              (atomic-change-group
+                (delete-region (car sibling-bounds) (cdr sibling-bounds))
+                (goto-char insert-marker)
+                (insert sibling-text))
+              t)))))))
 
 (defun cpo-outline-forward-barf-heading ()
   (interactive)
-  (require 'org)
   (save-mark-and-excursion
-    (when (cpo-tree-walk--motion-moved 'cpo-outline-down-to-last-child)
-      (org-promote-subtree))))
+    (let ((current-bounds (cpo-outline-tree-bounds (point))))
+      (when (and current-bounds
+                 (cpo-tree-walk--motion-moved 'cpo-outline-down-to-last-child))
+        (let ((child-bounds (cpo-outline-tree-bounds (point))))
+          (when child-bounds
+            (let ((insert-marker (copy-marker (cdr current-bounds)))
+                  (child-text (cpo-outline--subtree-text-with-adjusted-levels child-bounds 1)))
+              (atomic-change-group
+                (delete-region (car child-bounds) (cdr child-bounds))
+                (goto-char insert-marker)
+                (insert child-text))
+              t)))))))
 
 (defun cpo-outline-add-heading-above ()
   (interactive)
@@ -109,13 +139,13 @@ This is useful when finishing a heading and wanting to start writing something a
 
 (defun cpo-outline--forward-half-or-full-sibling-single (&optional half-sibling-only)
   (let ((start-point (point))
-        (start-level (org-current-level))
+        (start-level (cpo-outline--current-level))
         ;; Use 0 as a sentinel for root headings with no parent, so that the
         ;; logic below works uniformly: root-level headings (level 1 with no
         ;; parent) can still reach their forward siblings.
         (parent-level (or (save-mark-and-excursion
                             (and (ignore-errors (outline-up-heading 1))
-                                 (org-current-level)))
+                                 (cpo-outline--current-level)))
                           0))
         (cur-level nil)
         (end-point nil))
@@ -127,7 +157,7 @@ This is useful when finishing a heading and wanting to start writing something a
        ;; This avoids treating an outline-next-heading that moves to point-max
        ;; (without finding a real heading) as a successful move.
        (while (and (ignore-errors (outline-next-heading))
-                   (setq cur-level (org-current-level))
+                   (setq cur-level (cpo-outline--current-level))
                    (setq end-point (point))
                    (and cur-level (< start-level cur-level)))
          nil)
@@ -142,18 +172,18 @@ This is useful when finishing a heading and wanting to start writing something a
 
 (defun cpo-outline--backward-half-or-full-sibling-single (&optional half-sibling-only)
   (let ((start-point (point))
-        (start-level (org-current-level))
+        (start-level (cpo-outline--current-level))
         ;; Use 0 as a sentinel for root headings with no parent, so that the
         ;; logic below works uniformly: root-level headings (level 1 with no
         ;; parent) can still reach their backward siblings.
         ;; Note: unlike the forward function, the naive code here used to call
-        ;; (org-current-level) unconditionally after (outline-up-heading 1),
+        ;; (cpo-outline--current-level) unconditionally after (outline-up-heading 1),
         ;; which would return the current heading's level on failure rather than
         ;; nil.  This caused it to use start-level as parent-level, breaking
         ;; backward sibling movement at root level.
         (parent-level (or (save-mark-and-excursion
                             (and (ignore-errors (outline-up-heading 1))
-                                 (org-current-level)))
+                                 (cpo-outline--current-level)))
                           0))
         (keep-going t)
         (min-level nil)
@@ -164,7 +194,7 @@ This is useful when finishing a heading and wanting to start writing something a
        (while (and keep-going
                    (cpo-tree-walk--motion-moved
                     (lambda () (ignore-errors (outline-previous-heading)))))
-         (let ((cur-level (org-current-level)))
+         (let ((cur-level (cpo-outline--current-level)))
            (when (not min-level)
              (setq min-level cur-level)
              (setq min-level-point (point)))
@@ -286,13 +316,47 @@ There can be arbitrarily many half siblings, since the depth difference between 
                                                        (point))
  )
 
+(defun cpo-outline--adjust-heading-levels (text level-diff)
+  "Return TEXT with every heading level reduced by LEVEL-DIFF.
+Works generically for any outline heading style by detecting the
+heading character from the first matched heading in TEXT.
+The heading character is the first character of the matched prefix,
+eg. `*' for org-mode or `#' for markdown.  The suffix after the
+level-indicator characters (typically a single space) is preserved.
+Uses the caller's buffer-local `outline-regexp' and `outline-level'."
+  (let ((caller-outline-regexp outline-regexp)
+        (caller-outline-level outline-level))
+    (with-temp-buffer
+      (setq-local outline-regexp caller-outline-regexp)
+      (setq-local outline-level caller-outline-level)
+      (insert text)
+      (goto-char (point-min))
+      ;; Find the first heading to determine the heading character and suffix.
+      (when (re-search-forward (concat "^\\(?:" outline-regexp "\\)") nil t)
+        (let* ((matched (match-string-no-properties 0))
+               (level (save-match-data
+                        (goto-char (match-beginning 0))
+                        (funcall outline-level)))
+               (heading-char (aref matched 0))
+               (suffix (substring matched level)))
+          ;; Replace every heading in the buffer: match the heading prefix and
+          ;; build a new one with level reduced by level-diff.
+          (goto-char (point-min))
+          (while (re-search-forward (concat "^\\(?:" outline-regexp "\\)") nil t)
+            (let* ((cur-level (save-match-data
+                                (goto-char (match-beginning 0))
+                                (funcall outline-level)))
+                   (new-level (max 1 (- cur-level level-diff)))
+                   (new-prefix (concat (make-string new-level heading-char) suffix)))
+              (replace-match new-prefix nil t)))))
+      (buffer-string))))
+
 (defun cpo-outline-raise ()
   "Replace the parent heading's subtree with the current heading's subtree.
 The child heading is promoted to take the parent's place, discarding
 the parent and any siblings.  The heading level is adjusted so the
 child takes the parent's heading level."
   (interactive)
-  (require 'org)
   (let* ((child-bounds (cpo-outline-tree-bounds (point)))
          (parent-bounds (and child-bounds
                              (save-mark-and-excursion
@@ -304,29 +368,19 @@ child takes the parent's heading level."
                (cpo-tree-walk--region-strictly-less child-bounds parent-bounds))
       (let* ((parent-level (save-mark-and-excursion
                              (goto-char (car parent-bounds))
-                             (org-current-level)))
+                             (cpo-outline--current-level)))
              (child-level (save-mark-and-excursion
                             (goto-char (car child-bounds))
-                            (org-current-level)))
+                            (cpo-outline--current-level)))
              (level-diff (- child-level parent-level))
              (child-text (buffer-substring-no-properties (car child-bounds)
-                                                          (cdr child-bounds))))
-        ;; Adjust heading levels: reduce each heading's level by level-diff
-        (let ((adjusted-text
-               (with-temp-buffer
-                 (insert child-text)
-                 (goto-char (point-min))
-                 (while (re-search-forward "^\\(\\*+\\)" nil t)
-                   (let* ((stars (match-string 1))
-                          (new-level (max 1 (- (length stars) level-diff)))
-                          (new-stars (make-string new-level ?*)))
-                     (replace-match new-stars nil nil nil 1)))
-                 (buffer-string))))
-          (atomic-change-group
-            (delete-region (car parent-bounds) (cdr parent-bounds))
-            (goto-char (car parent-bounds))
-            (insert adjusted-text))
-          (goto-char (car parent-bounds)))))))
+                                                          (cdr child-bounds)))
+             (adjusted-text (cpo-outline--adjust-heading-levels child-text level-diff)))
+        (atomic-change-group
+          (delete-region (car parent-bounds) (cdr parent-bounds))
+          (goto-char (car parent-bounds))
+          (insert adjusted-text))
+        (goto-char (car parent-bounds))))))
 
 ;;; Forward/backward to beginning/end of outline tree nodes.
 ;;; These movements respect tree structure -- they only move between
