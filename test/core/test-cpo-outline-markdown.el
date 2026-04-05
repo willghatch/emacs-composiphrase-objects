@@ -32,6 +32,27 @@
   (cpo-test--setup-markdown-outline)
   (setq-local cpo-outline-heading--regexp "^#+ "))
 
+(carettest-tesmut-test
+ test-outline-open-markdown
+ :before
+ "# root
+## child1
+<p>## child2
+### grandchild1
+### grandchild2
+## child3
+"
+ :after
+ "# root
+## child1
+## child2
+### grandchild1
+### grandchild2
+## <p>
+## child3
+"
+ :function 'cpo-outline-add-heading-below
+ :setup (cpo-test--setup-markdown-outline))
 
 ;;; -----------------------------------------------------------------------
 ;;; Tests from test-cpo-outline.el, duplicated for markdown mode
