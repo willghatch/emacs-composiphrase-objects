@@ -828,6 +828,48 @@ after"
  'cpo-table-column-delete)
 
 (carettest-tesmut-test
+ cpo-table-test-column-delete-inner
+ "
+| a | <p>beta | c |
+| --- | --- | --- |
+| 1 | two | 3 |
+"
+ "
+| a | <p> | c |
+| --- | --- | --- |
+| 1 |  | 3 |
+"
+ 'cpo-table-column-delete-inner)
+
+(carettest-tesmut-test
+ cpo-table-test-column-delete-inner-preserves-separator-marker
+ "
+| alpha | <p>beta | gamma |
+| :--- | :---: | ---: |
+| 1 | two | 3 |
+"
+ "
+| alpha | <p> | gamma |
+| :--- | :---: | ---: |
+| 1 |  | 3 |
+"
+ 'cpo-table-column-delete-inner)
+
+(carettest-tesmut-test
+ cpo-table-test-column-delete-inner-compact-table
+ "
+|a|<p>beta|c|
+|---|---|---|
+|1|two|3|
+"
+ "
+|a|<p>|c|
+|---|---|---|
+|1||3|
+"
+ 'cpo-table-column-delete-inner)
+
+(carettest-tesmut-test
  cpo-table-test-simple-align-1
  "
 <p>| a | hello |

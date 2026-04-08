@@ -17,7 +17,7 @@
 ;;   - expand-region to cover a specific object (except for columns)
 ;;   - Open: initial scaffolding to start a table, insert row, insert column
 ;;   - Transpose: row, cell, column
-;;   - Column delete
+;;   - Column delete and delete-inner
 ;;   - Repeatable-motion integration
 
 (require 'cpo-text-object-stuff)
@@ -1860,6 +1860,30 @@ arguments currently support only :direction, which may be one of
                   ;; We also need to delete the pipe after the cell
                   (delete-region ob (min (1+ oe) (point-max)))))))
           (setq cpo-table--cache nil)
+          (undo-boundary))))))
+
+;;;###autoload
+(defun cpo-table-column-delete-inner ()
+  "Delete the contents of the current column without deleting delimiters.
+Separator rows are left intact because their cell text is table structure."
+  (interactive)
+  (let* ((table (cpo-table--parse-table-at-point))
+         (col-idx (cpo-table--column-index-at-point))
+         (location (cpo-table--capture-location)))
+    (when (and table col-idx)
+      (let ((rows (plist-get table :rows)))
+        (with-undo-amalgamate
+          (dolist (row (reverse rows))
+            (unless (plist-get row :separator-p)
+              (let ((cell (cpo-table--cell-in-row-at-col row col-idx)))
+                (when cell
+                  (delete-region (plist-get cell :inner-begin)
+                                 (plist-get cell :inner-end))))))
+          (setq cpo-table--cache nil)
+          (cpo-table--restore-location location col-idx)
+          (let ((cell (cpo-table--cell-at-point)))
+            (when (and cell (not (plist-get (cpo-table--row-at-point) :separator-p)))
+              (cpo-table--goto-empty-cell-edit-point cell)))
           (undo-boundary))))))
 
 ;;; ---------------------------------------------------------------------------
