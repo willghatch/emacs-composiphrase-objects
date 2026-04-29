@@ -306,9 +306,8 @@ There can be arbitrarily many half siblings, since the depth difference between 
  :use-next-sibling 'cpo-outline-forward-half-or-full-sibling
  :use-previous-sibling 'cpo-outline-backward-half-or-full-sibling
  :use-left-finalizer-for-tree-with-no-end-delimiter (lambda ()
-                                                      (if (cpo-outline--outline-at-anchor-point-p)
-                                                          (line-beginning-position)
-                                                        (outline-previous-heading)))
+                                                      (outline-back-to-heading t)
+                                                      (point))
  :use-right-finalizer-for-tree-with-no-end-delimiter (lambda ()
                                                        (outline-next-heading)
                                                        (unless (and (eobp) (not (bolp)))

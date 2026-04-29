@@ -787,6 +787,107 @@ Some child body.
  :function 'cpo-outline-expand-region
  :setup (cpo-test--setup-markdown-outline))
 
+;;; Expanding region from a non-beginning position on the heading line.
+;;; Regression test: the left finalizer previously used outline-previous-heading
+;;; when not at the exact start of the heading, causing it to jump to the prior
+;;; heading instead of staying on the current one.
+(carettest-tesmo-test
+ test-outline-expand-region_from-middle-of-heading_markdown
+ "# h1
+## h2
+
+### a
+
+text
+
+<p1>### <p0>b
+
+b text
+
+<m1>### c
+
+c text
+"
+ 'cpo-outline-expand-region
+ :setup (cpo-test--setup-markdown-outline))
+(carettest-tesmo-test
+ test-outline-expand-region_from-middle-of-heading_markdown2
+ "# h1
+## h2
+
+### a
+
+text
+
+<p0><p1>### b
+
+b text
+
+<m1>### c
+
+c text
+"
+ 'cpo-outline-expand-region
+ :setup (cpo-test--setup-markdown-outline))
+(carettest-tesmo-test
+ test-outline-expand-region_from-middle-of-heading_markdown3
+ "# h1
+## h2
+
+### a
+
+text
+
+<p1>### b
+<p0>
+b text
+
+<m1>### c
+
+c text
+"
+ 'cpo-outline-expand-region
+ :setup (cpo-test--setup-markdown-outline))
+(carettest-tesmo-test
+ test-outline-expand-region_from-middle-of-heading_markdown4
+ "# h1
+## h2
+
+### a
+
+text
+
+<p1>### b
+
+b <p0>text
+
+<m1>### c
+
+c text
+"
+ 'cpo-outline-expand-region
+ :setup (cpo-test--setup-markdown-outline))
+(carettest-tesmo-test
+ test-outline-expand-region_from-middle-of-heading_markdown5
+ "# h1
+## h2
+
+### a
+
+text
+
+<p1>### b<p0>
+
+b text
+
+<m1>### c
+
+c text
+"
+ 'cpo-outline-expand-region
+ :setup (cpo-test--setup-markdown-outline))
+
+
 ;;; Transposition works when expand-region works
 (carettest-tesmut-test
  test-outline-transpose-sibling-forward_with-body_markdown
